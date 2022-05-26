@@ -15,10 +15,15 @@ class Model(torch.nn.Module):
         self.n_layers = n_layers
 
         self.af = nn.ReLU()
-        self.l1 = nn.Bilinear(16, 16, 16)
-        self.l2 = nn.Linear(16, 16)
+        self.l1 = nn.Bilinear(8, 8, 8)
+        self.l2 = nn.Linear(8, 8)
     
     def forward(self, x):
+        """
+        x = (projectile, target)
+        shapes are batch x x_dim, y_dims, gauge fields
+        ex: (16, 101, 101, 8)
+        """
         (a, b) = x
         out = self.af(self.l1(a, b))
         out = self.l2(out)

@@ -8,10 +8,22 @@ from Model import Model
 from Wrapper import Wrapper
 
 def main(args):
+    utilities.seed.seed_everything(seed=args.seed, workers=True)
+
+    if args.gpu:
+        avail_gpus = 1
+        n_workers = 0
+    else:
+        avail_gpus = 0
+        n_workers = 8
+
     train_loader = get_iterators(
         datapath='data',
+        cached=args.cached,
+        max_samples=args.max_samples,
         batch_size=args.batch_size,
-        n_workers=8)
+        n_workers=n_workers
+        )
 
     logger = TensorBoardLogger(
         save_dir=os.path.join(args.results_dir, "TB_logs"),
@@ -20,7 +32,7 @@ def main(args):
 
     trainer = Trainer(
         logger=logger,
-        gpus=args.avail_gpus,
+        gpus=avail_gpus,
         max_epochs=args.epochs,
         fast_dev_run=args.fast_dev_run
         )
@@ -34,6 +46,7 @@ def main(args):
 
     Wrapped_Model = Wrapper(
         model,
+        x_only=args.x_only,
         criterion=args.criterion,
         lr=args.lr,
         amsgrad=args.amsgrad
@@ -48,14 +61,17 @@ def main(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--model", default='lstm', type=str, choices=['gru', 'mlp', 'lstm'])
+    parser.add_argument("--x_only", default=True, type=bool)
     parser.add_argument("--n_layers", default=4, type=int)
     parser.add_argument("--input_dim", default=16, type=int)
     parser.add_argument("--hidden_dim", default=8, type=int)
     parser.add_argument("--output_dim", default=16, type=int)
 
-    parser.add_argument("--batch_size", default=2, type=int)
-    parser.add_argument("--epochs", default=200, type=int)
+    parser.add_argument("--batch_size", default=8, type=int)
+    parser.add_argument("--max_samples", default=32, type=int)
+    parser.add_argument("--cached", default=True, type=bool)
+
+    parser.add_argument("--epochs", default=20, type=int)
     parser.add_argument("--lr", default=1e-2, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
     parser.add_argument("--criterion", default='mse', type=str,
@@ -64,8 +80,7 @@ if __name__ == '__main__':
     parser.add_argument("--results_dir", default='Results', type=str)
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
-    parser.add_argument("--n_workers", default=8, type=int)
-    parser.add_argument("--avail_gpus", default=0, type=int)
+    parser.add_argument("--gpu", default=False, type=bool)
     parser.add_argument("--fast_dev_run", default=False, type=bool)
     args = parser.parse_args()
 
