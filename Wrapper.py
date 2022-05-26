@@ -7,6 +7,7 @@ from pytorch_forecasting.metrics import MAPE
 class Wrapper(LightningModule):  
     def __init__(self,
                 core_model,
+                x_only,
                 criterion, 
                 lr, 
                 amsgrad,
@@ -14,6 +15,7 @@ class Wrapper(LightningModule):
 
         super().__init__()
         self.core_model = core_model
+        self.x_only = x_only
         self.criterion = criterion
         self.lr = lr
         self.amsgrad = amsgrad
@@ -43,7 +45,8 @@ class Wrapper(LightningModule):
 
     def training_step(self, batch, batch_idx):
         a,b,c = batch
-        x, y = (a, b), c
+        if self.x_only:
+            x, y = (a[..., 8:], b[..., 8:]), c[..., 8:]
         batch_size = y.shape[0]
         pred = self.forward(x)
         metrics = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
