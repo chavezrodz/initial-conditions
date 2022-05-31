@@ -46,7 +46,7 @@ class Wrapper(LightningModule):
     def training_step(self, batch, batch_idx):
         a,b,c = batch
         if self.x_only:
-            x, y = (a[..., 8:], b[..., 8:]), c[..., 8:]
+            x, y = (a[..., 8:, :, :], b[..., 8:, :, :]), c[..., 8:, :, :]
         batch_size = y.shape[0]
         pred = self.forward(x)
         metrics = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
