@@ -69,12 +69,12 @@ if __name__ == '__main__':
     parser.add_argument("--n_layers", default=4, type=int)
     parser.add_argument("--hidden_dim", default=32, type=int)
 
-    parser.add_argument("--x_only", default=True, type=bool)
-    parser.add_argument("--batch_size", default=8, type=int)
-    parser.add_argument("--max_samples", default=32, type=int, help='-1 for all')
+    parser.add_argument("--x_only", default=False, type=bool)
+    parser.add_argument("--batch_size", default=4, type=int)
+    parser.add_argument("--max_samples", default=16, type=int, help='-1 for all')
     parser.add_argument("--cached", default=True, type=bool)
 
-    parser.add_argument("--epochs", default=100, type=int)
+    parser.add_argument("--epochs", default=500, type=int)
     parser.add_argument("--lr", default=1e-2, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
     parser.add_argument("--criterion", default='pc_err', type=str,
