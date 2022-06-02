@@ -5,6 +5,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning import utilities
 from pytorch_lightning.loggers import TensorBoardLogger
 from Model import Model
+from UNET import UNET
 from Wrapper import Wrapper
 
 def main(args):
@@ -42,12 +43,21 @@ def main(args):
         fast_dev_run=args.fast_dev_run
         )
 
-    model = Model(
-        input_dim=input_dim,
-        hidden_dim=args.hidden_dim,
-        n_layers=args.n_layers,
-        output_dim=output_dim,
-        )
+    if args.model == 'MLP': 
+        model = Model(
+            input_dim=input_dim,
+            hidden_dim=args.hidden_dim,
+            n_layers=args.n_layers,
+            output_dim=output_dim,
+            )
+    elif args.model == 'UNET':
+        model = UNET(
+            input_dim=input_dim,
+            hidden_dim=args.hidden_dim,
+            n_layers=args.n_layers,
+            output_dim=output_dim,
+            )
+
 
     Wrapped_Model = Wrapper(
         model,
@@ -68,6 +78,8 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--n_layers", default=4, type=int)
     parser.add_argument("--hidden_dim", default=32, type=int)
+    parser.add_argument("--model", default='UNET', type=str,
+                        choices=['MLP', 'UNET'])
 
     parser.add_argument("--x_only", default=False, type=bool)
     parser.add_argument("--batch_size", default=4, type=int)
@@ -84,7 +96,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--gpu", default=False, type=bool)
-    parser.add_argument("--fast_dev_run", default=False, type=bool)
+    parser.add_argument("--fast_dev_run", default=True, type=bool)
     args = parser.parse_args()
 
     main(args)

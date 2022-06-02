@@ -41,6 +41,7 @@ class Wrapper(LightningModule):
         return metrics
 
     def forward(self, x):
+        x = torch.cat(x, dim=-3)
         return self.core_model(x)
 
     def training_step(self, batch, batch_idx):
