@@ -76,18 +76,19 @@ def main(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--n_layers", default=4, type=int)
+    parser.add_argument("--n_layers", default=2, type=int)
     parser.add_argument("--hidden_dim", default=32, type=int)
     parser.add_argument("--model", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
 
-    parser.add_argument("--x_only", default=False, type=bool)
-    parser.add_argument("--batch_size", default=4, type=int)
-    parser.add_argument("--max_samples", default=16, type=int, help='-1 for all')
+    parser.add_argument("--x_only", default=True, type=bool)
+    parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--cached", default=True, type=bool)
+    parser.add_argument("--max_samples", default=64, type=int,
+                        help='-1 for all')
 
     parser.add_argument("--epochs", default=500, type=int)
-    parser.add_argument("--lr", default=1e-2, type=float)
+    parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
     parser.add_argument("--criterion", default='pc_err', type=str,
                         choices=['pc_err', 'abs_err', 'mse'])
@@ -96,7 +97,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--gpu", default=False, type=bool)
-    parser.add_argument("--fast_dev_run", default=True, type=bool)
+    parser.add_argument("--fast_dev_run", default=False, type=bool)
     args = parser.parse_args()
 
     main(args)

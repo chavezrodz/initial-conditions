@@ -107,7 +107,7 @@ def get_iterators(
     n_workers
     ):
 
-    train_dir=os.path.join(datapath, '193')
+    train_dir=os.path.join(datapath, '128x128/5020')
 
     dataset = IPGDataset(train_dir, cached=cached, max_samples=max_samples)
 
