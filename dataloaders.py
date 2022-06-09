@@ -53,11 +53,26 @@ def save_checkpt(filename, outfile):
     pass
 
 
-def read_checkpt(filename):
-    abc = np.load(filename)
-    abc = torch.tensor(abc).float()
+def read_checkpt(filename, norms):
+    abc = np.transpose(np.load(filename), (1,2,0))
+    abc = (abc - norms[0])/norms[1]
+    abc = torch.tensor(np.transpose(abc, (2,0,1))).float()
     A, B, C = abc[:16], abc[16:32], abc[32:48] 
     return A, B, C
+
+datafolder = 'data/128x128/5020/checkpt'
+
+def make_norms(arrays_path, outfile):
+    files = os.listdir(arrays_path)
+    arrays = []
+    for file in files:
+        arr = np.load(os.path.join(arrays_path, file))
+        arrays.append(arr)
+    arrays = np.stack(arrays)
+    norms = np.zeros((2, 48))
+    norms[0] = arrays.mean(axis=(0, 2, 3))
+    norms[1] = arrays.std(axis=(0, 2, 3))
+    np.save(outfile, norms)
 
 
 class IPGDataset(Dataset):
@@ -65,24 +80,30 @@ class IPGDataset(Dataset):
         self.img_dir = img_dir
         self.cached = cached
         checkpt_path = os.path.join(img_dir, 'checkpt')
+        arrays_path = os.path.join(checkpt_path, 'arrays')
+        os.makedirs(arrays_path, exist_ok=True)
         checkpt_exists = os.path.exists(checkpt_path)
 
         if not checkpt_exists:
             print("Making Preprocess Checkpoint")
             filelist = os.listdir(img_dir)
-            os.makedirs(checkpt_path, exist_ok=True)
             for file in filelist:
                 filename = os.path.join(img_dir, file)
-                outfile = os.path.join(checkpt_path, file[:-4]+'.npy')
+                outfile = os.path.join(arrays_path, file[:-4]+'.npy')
                 save_checkpt(filename, outfile)
+            norm_file = os.path.join(checkpt_path, 'norms')
+            make_norms(arrays_path, norm_file)
+        else:
+            print("Using Checkpoint")
 
-        self.filelist = os.listdir(checkpt_path)[:max_samples]
+        self.norms = np.load(os.path.join(checkpt_path, 'norms.npy'))
+        self.filelist = os.listdir(arrays_path)[:max_samples]
         self.n_samples = len(self.filelist)
 
         if self.cached:
             self.A, self.B, self.C = list(), list(), list()
             for file in self.filelist:
-                A, B, C = read_checkpt(os.path.join(checkpt_path, file))
+                A, B, C = read_checkpt(os.path.join(arrays_path, file), self.norms)
                 self.A.append(A)
                 self.B.append(B)
                 self.C.append(C)
@@ -95,7 +116,7 @@ class IPGDataset(Dataset):
         if self.cached:
             A, B, C = self.A[idx], self.B[idx], self.C[idx]
         else:
-            A, B, C = read_checkpt(os.path.join(self.checkpt_path, self.filelist[idx]))
+            A, B, C = read_checkpt(os.path.join(self.checkpt_path, self.filelist[idx]), self.norms)
         return A, B, C
 
 
