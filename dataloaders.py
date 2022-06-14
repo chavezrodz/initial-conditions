@@ -56,10 +56,10 @@ def get_norms(iterator):
     arrays = list()
     for x in iterator:
         arrays.append(x)
-    arrays = np.concatenate(arrays, axis=0)
-    norms = np.zeros((2, 48))
-    norms[0] = arrays.mean(axis=(0, 2, 3))
-    norms[1] = arrays.std(axis=(0, 2, 3))
+    arrays = torch.cat(arrays, dim=0)
+    norms = torch.zeros((2, 48))
+    norms[0] = arrays.mean(dim=(0, 2, 3))
+    norms[1] = arrays.std(dim=(0, 2, 3))
     return norms
 
 class IPGDataset(Dataset):

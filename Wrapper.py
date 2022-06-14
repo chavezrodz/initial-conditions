@@ -8,7 +8,7 @@ class MAPE(nn.Module):
         super().__init__()
         
     def forward(self, y_pred, y):
-        return ((y - y_pred)/y).abs()
+        return ((y - y_pred)/y).abs().mean()
 
 
 class Wrapper(LightningModule):  
@@ -50,9 +50,9 @@ class Wrapper(LightningModule):
         return metrics
 
     def scale(self, x):
-        abc = np.transpose(x, (0, -2,-1,-3))
-        abc = (abc - self.norms[0])/self.norms[1]
-        abc = (np.transpose(abc, (0, -1, -3, -2))).float()
+        abc = torch.permute(x, (0, -2,-1,-3))
+        abc = (abc - self.norms[0].type_as(x))/self.norms[1].type_as(x)
+        abc = (torch.permute(abc, (0, -1, -3, -2))).float()
         return abc
 
     def unscale(self, x):
