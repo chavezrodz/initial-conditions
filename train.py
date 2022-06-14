@@ -24,7 +24,7 @@ def main(args):
     output_dim = 8 if args.x_only else 16
 
     (train, val, test), norms = get_iterators(
-        datapath='data',
+        datapath=args.datapath,
         cached=args.cached,
         batch_size=args.batch_size,
         n_workers=n_workers

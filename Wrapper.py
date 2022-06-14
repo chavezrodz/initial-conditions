@@ -2,7 +2,13 @@ import numpy as np
 import torch.optim
 import torch.nn as nn
 from pytorch_lightning import LightningModule
-from pytorch_forecasting.metrics import MAPE
+
+class MAPE(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, y_pred, y):
+        return ((y - y_pred)/y).abs()
 
 
 class Wrapper(LightningModule):  
