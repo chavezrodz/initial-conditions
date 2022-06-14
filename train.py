@@ -23,10 +23,9 @@ def main(args):
     input_dim *= 2 # concatenating A&B
     output_dim = 8 if args.x_only else 16
 
-    train_loader = get_iterators(
+    (train, val, test), norms = get_iterators(
         datapath='data',
         cached=args.cached,
-        max_samples=args.max_samples,
         batch_size=args.batch_size,
         n_workers=n_workers
         )
@@ -40,7 +39,8 @@ def main(args):
         logger=logger,
         gpus=avail_gpus,
         max_epochs=args.epochs,
-        fast_dev_run=args.fast_dev_run
+        fast_dev_run=args.fast_dev_run,
+        log_every_n_steps=10
         )
 
     if args.model == 'MLP': 
@@ -61,6 +61,7 @@ def main(args):
 
     Wrapped_Model = Wrapper(
         model,
+        norms,
         x_only=args.x_only,
         criterion=args.criterion,
         lr=args.lr,
@@ -70,7 +71,8 @@ def main(args):
 
     trainer.fit(
         Wrapped_Model,
-        train_loader,
+        train,
+        val
         )
 
 
@@ -87,7 +89,7 @@ if __name__ == '__main__':
     parser.add_argument("--max_samples", default=64, type=int,
                         help='-1 for all')
 
-    parser.add_argument("--epochs", default=500, type=int)
+    parser.add_argument("--epochs", default=50, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
     parser.add_argument("--criterion", default='pc_err', type=str,

@@ -1,3 +1,4 @@
+import numpy as np
 import torch.optim
 import torch.nn as nn
 from pytorch_lightning import LightningModule
@@ -7,6 +8,7 @@ from pytorch_forecasting.metrics import MAPE
 class Wrapper(LightningModule):  
     def __init__(self,
                 core_model,
+                norms, 
                 x_only,
                 criterion, 
                 lr, 
@@ -15,6 +17,7 @@ class Wrapper(LightningModule):
 
         super().__init__()
         self.core_model = core_model
+        self.norms = norms
         self.x_only = x_only
         self.criterion = criterion
         self.lr = lr
@@ -40,17 +43,32 @@ class Wrapper(LightningModule):
         )
         return metrics
 
+    def scale(self, x):
+        abc = np.transpose(x, (0, -2,-1,-3))
+        abc = (abc - self.norms[0])/self.norms[1]
+        abc = (np.transpose(abc, (0, -1, -3, -2))).float()
+        return abc
+
+    def unscale(self, x):
+        pass
+
     def forward(self, x):
         x = torch.cat(x, dim=-3)
         return self.core_model(x)
 
-    def training_step(self, batch, batch_idx):
-        a,b,c = batch
-        x, y = (a, b), c
+    def predict_step(self, batch, batch_idx):
+        abc = self.scale(batch)
+        a, b, c = abc[:, :16], abc[:, 16:32], abc[:, 32:48] 
+        x, y = (a,b), c
         if self.x_only:
             x, y = (a[..., 8:, :, :], b[..., 8:, :, :]), c[..., 8:, :, :]
-        batch_size = y.shape[0]
         pred = self.forward(x)
+
+        return pred, y
+
+    def training_step(self, batch, batch_idx):
+        pred, y = self.predict_step(batch, batch_idx)
+        batch_size = y.shape[0]
         metrics = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
         self.log_dict(
             {f'{k}/train': v for k, v in metrics.items()},
@@ -58,3 +76,12 @@ class Wrapper(LightningModule):
             )
         return metrics[self.criterion]
 
+    def validation_step(self, batch, batch_idx):
+        pred, y = self.predict_step(batch, batch_idx)
+        batch_size = y.shape[0]
+        metrics = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
+        self.log_dict(
+            {f'{k}/validation': v for k, v in metrics.items()},
+            on_epoch=True, on_step=False, batch_size=batch_size
+            )
+        return metrics[self.criterion]

@@ -53,92 +53,101 @@ def save_checkpt(filename, outfile):
     pass
 
 
-def read_checkpt(filename, norms):
-    abc = np.transpose(np.load(filename), (1,2,0))
-    abc = (abc - norms[0])/norms[1]
-    abc = torch.tensor(np.transpose(abc, (2,0,1))).float()
-    A, B, C = abc[:16], abc[16:32], abc[32:48] 
-    return A, B, C
-
-datafolder = 'data/128x128/5020/checkpt'
-
-def make_norms(arrays_path, outfile):
-    files = os.listdir(arrays_path)
-    arrays = []
-    for file in files:
-        arr = np.load(os.path.join(arrays_path, file))
-        arrays.append(arr)
-    arrays = np.stack(arrays)
+def get_norms(iterator):
+    arrays = list()
+    for x in iterator:
+        arrays.append(x)
+    arrays = np.concatenate(arrays, axis=0)
     norms = np.zeros((2, 48))
     norms[0] = arrays.mean(axis=(0, 2, 3))
     norms[1] = arrays.std(axis=(0, 2, 3))
-    np.save(outfile, norms)
-
+    return norms
 
 class IPGDataset(Dataset):
-    def __init__(self, img_dir, cached=True, max_samples=None):
-        self.img_dir = img_dir
+    def __init__(self, checkpt_path, cached=True):
+        self.checkpt_path = checkpt_path
         self.cached = cached
-        checkpt_path = os.path.join(img_dir, 'checkpt')
-        arrays_path = os.path.join(checkpt_path, 'arrays')
-        os.makedirs(arrays_path, exist_ok=True)
-        checkpt_exists = os.path.exists(checkpt_path)
 
-        if not checkpt_exists:
-            print("Making Preprocess Checkpoint")
-            filelist = os.listdir(img_dir)
-            for file in filelist:
-                filename = os.path.join(img_dir, file)
-                outfile = os.path.join(arrays_path, file[:-4]+'.npy')
-                save_checkpt(filename, outfile)
-            norm_file = os.path.join(checkpt_path, 'norms')
-            make_norms(arrays_path, norm_file)
-        else:
-            print("Using Checkpoint")
-
-        self.norms = np.load(os.path.join(checkpt_path, 'norms.npy'))
-        self.filelist = os.listdir(arrays_path)[:max_samples]
-        self.n_samples = len(self.filelist)
+        self.filelist = filelist = os.listdir(checkpt_path)
+        self.n_samples = len(filelist)
 
         if self.cached:
-            self.A, self.B, self.C = list(), list(), list()
-            for file in self.filelist:
-                A, B, C = read_checkpt(os.path.join(arrays_path, file), self.norms)
-                self.A.append(A)
-                self.B.append(B)
-                self.C.append(C)
-
+            self.ABC = list()
+            for file in filelist:
+                ABC = np.load(os.path.join(checkpt_path, file))
+                self.ABC.append(ABC)
 
     def __len__(self):
         return self.n_samples
 
     def __getitem__(self, idx):
         if self.cached:
-            A, B, C = self.A[idx], self.B[idx], self.C[idx]
+            ABC = self.ABC[idx]
         else:
-            A, B, C = read_checkpt(os.path.join(self.checkpt_path, self.filelist[idx]), self.norms)
-        return A, B, C
+            ABC = np.load(os.path.join(self.checkpt_path, self.filelist[idx]))
+        return ABC
 
 
 def get_iterators(
     datapath,
     cached,
-    max_samples,
     batch_size,
-    n_workers
+    n_workers,
+    test_split=0.1,
+    val_split=0.1
     ):
 
-    train_dir=os.path.join(datapath, '128x128/5020')
+    data_dir=os.path.join(datapath, '128x128/5020')
+    checkpt_path = os.path.join(data_dir, 'checkpt')
+    checkpt_exists = os.path.exists(checkpt_path)
+    arrays_path = os.path.join(checkpt_path, 'arrays')
 
-    dataset = IPGDataset(train_dir, cached=cached, max_samples=max_samples)
+    if not checkpt_exists:
+        print("Making Preprocess Checkpoint")
+        os.makedirs(arrays_path, exist_ok=True)
+        filelist = os.listdir(data_dir)
+        for file in filelist:
+            filename = os.path.join(data_dir, file)
+            outfile = os.path.join(arrays_path, file[:-4]+'.npy')
+            save_checkpt(filename, outfile)
+    else:
+        print("Using Checkpoint")
 
-    train_dataloader = DataLoader(
-        dataset,
+    dataset = IPGDataset(arrays_path, cached=cached)
+    total_len = len(dataset)
+    test_size = int(test_split * total_len)
+    train_size = total_len - test_size
+    val_size = int(val_split*train_size)
+    train_size = train_size - val_size
+
+    train_ds, val_ds, test_ds = torch.utils.data.random_split(
+        dataset, [train_size, val_size, test_size]
+        )
+
+    train_dl = DataLoader(
+        train_ds,
         batch_size=batch_size,
         drop_last=True,
-        # collate_fn=collate_batch,
         shuffle=True,
         num_workers=n_workers
         )
 
-    return train_dataloader
+    val_dl = DataLoader(
+        val_ds,
+        batch_size=batch_size,
+        drop_last=True,
+        shuffle=False,
+        num_workers=n_workers
+        )
+
+    test_dl = DataLoader(
+        test_ds,
+        batch_size=batch_size,
+        drop_last=True,
+        shuffle=False,
+        num_workers=n_workers
+        )
+
+    norms = get_norms(train_dl)
+
+    return (train_dl, val_dl, test_dl), norms
