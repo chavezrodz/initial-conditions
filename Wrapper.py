@@ -64,8 +64,8 @@ class Wrapper(LightningModule):
 
     def predict_step(self, batch, batch_idx):
         abc = self.scale(batch)
-        a, b, c = abc[:, :16], abc[:, 16:32], abc[:, 32:48] 
-        x, y = (a,b), c
+        a, b, c = abc[:, :16], abc[:, 16:32], abc[:, 32:48]
+        x, y = (a, b), c
         if self.x_only:
             x, y = (a[..., 8:, :, :], b[..., 8:, :, :]), c[..., 8:, :, :]
         pred = self.forward(x)
