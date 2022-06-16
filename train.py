@@ -63,6 +63,7 @@ def main(args):
         model,
         norms,
         x_only=args.x_only,
+        double_data_by_sym=args.double_data_by_sym,
         criterion=args.criterion,
         lr=args.lr,
         amsgrad=args.amsgrad
@@ -83,8 +84,9 @@ if __name__ == '__main__':
     parser.add_argument("--model", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
 
-    parser.add_argument("--x_only", default=True, type=bool)
-    parser.add_argument("--batch_size", default=8, type=int)
+    parser.add_argument("--x_only", default=False, type=bool)
+    parser.add_argument("--batch_size", default=2, type=int)
+    parser.add_argument("--double_data_by_sym", default=True, type=bool)
     parser.add_argument("--cached", default=True, type=bool)
     parser.add_argument("--max_samples", default=64, type=int,
                         help='-1 for all')
@@ -99,7 +101,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--gpu", default=False, type=bool)
-    parser.add_argument("--fast_dev_run", default=False, type=bool)
+    parser.add_argument("--fast_dev_run", default=True, type=bool)
     args = parser.parse_args()
 
     main(args)
