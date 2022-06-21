@@ -100,7 +100,7 @@ class Wrapper(LightningModule):
 
         metrics_scaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
         self.log_dict(
-            {f'{k}/validation/scaled': v for k, v in metrics_scaled.items()},
+            {f'train/{k}': v for k, v in metrics_scaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
             )
 
@@ -112,15 +112,33 @@ class Wrapper(LightningModule):
 
         metrics_scaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
         self.log_dict(
-            {f'{k}/validation/scaled': v for k, v in metrics_scaled.items()},
+            {f'validation/{k}/scaled': v for k, v in metrics_scaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
             )
 
         pred, y = self.unscale(pred), self.unscale(y)
         metrics_unscaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
         self.log_dict(
-            {f'{k}/validation/unscaled': v for k, v in metrics_unscaled.items()},
+            {f'validation/{k}/unscaled': v for k, v in metrics_unscaled.items()},
+            on_epoch=True, on_step=False, batch_size=batch_size
+            )
+        return metrics_scaled[self.criterion]
+
+    def test_step(self, batch, batch_idx):
+        pred, y = self.predict_step(batch, batch_idx)
+        batch_size = y.shape[0]
+
+        metrics_scaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
+        self.log_dict(
+            {f'{k}/scaled': v for k, v in metrics_scaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
             )
 
+        pred, y = self.unscale(pred), self.unscale(y)
+        print(pred, y)
+        metrics_unscaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
+        self.log_dict(
+            {f'{k}/unscaled': v for k, v in metrics_unscaled.items()},
+            on_epoch=True, on_step=False, batch_size=batch_size
+            )
         return metrics_scaled[self.criterion]

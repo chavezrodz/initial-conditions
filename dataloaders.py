@@ -58,11 +58,19 @@ def get_norms(iterator):
         arrays.append(x)
     arrays = torch.cat(arrays, dim=0)
     aa, bb, cc = arrays[:, :16], arrays[:, 16:32], arrays[:, 32:48]
-    arrays = torch.cat([aa, bb, cc], dim=0)
-    norms = torch.zeros((2, 16))
-    norms[0] = arrays.mean(dim=(0, 2, 3))
-    norms[1] = arrays.std(dim=(0, 2, 3))
-    return norms.repeat(1,3)
+
+    arrays_in = torch.cat([aa, bb], dim=0)
+    norms_in = torch.zeros((2, 16))
+    norms_in[0] = arrays_in.mean(dim=(0, 2, 3))
+    norms_in[1] = arrays_in.std(dim=(0, 2, 3))
+    norms_in = norms_in.repeat(1,2)
+
+    norms_out = torch.zeros((2,16))
+    norms_out[0] = cc.mean(dim=(0, 2, 3))
+    norms_out[1] = cc.std(dim=(0, 2, 3))
+
+    norms = torch.cat([norms_in, norms_out], dim=1)
+    return norms
 
 class IPGDataset(Dataset):
     def __init__(self, checkpt_path, cached=True):
