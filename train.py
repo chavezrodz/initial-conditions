@@ -41,7 +41,7 @@ def main(args):
         wandb.config.update(args)
         logger = WandbLogger(
             project="IC",
-            save_dir=os.path.join(args.resutls_dir, "wandb")
+            save_dir=os.path.join(args.results_dir, "wandb")
             )
 
 
@@ -72,6 +72,7 @@ def main(args):
     Wrapped_Model = Wrapper(
         model,
         norms,
+        rm_zeros=args.remove_zero_targets,
         x_only=args.x_only,
         double_data_by_sym=args.double_data_by_sym,
         criterion=args.criterion,
@@ -92,9 +93,10 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--n_layers", default=4, type=int)
     parser.add_argument("--hidden_dim", default=16, type=int)
-    parser.add_argument("--model", default='MLP', type=str,
+    parser.add_argument("--model", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
 
+    parser.add_argument("--remove_zero_targets", default=True, type=bool)
     parser.add_argument("--x_only", default=False, type=bool)
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--double_data_by_sym", default=True, type=bool)
@@ -102,13 +104,13 @@ if __name__ == '__main__':
     parser.add_argument("--max_samples", default=64, type=int,
                         help='-1 for all')
 
-    parser.add_argument("--epochs", default=50, type=int)
+    parser.add_argument("--epochs", default=25, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
     parser.add_argument("--criterion", default='mse', type=str,
                         choices=['pc_err', 'abs_err', 'mse'])
 
-    parser.add_argument("--logger", default='wandb', type=str, choices=['wandb', 'tb'])
+    parser.add_argument("--logger", default='tb', type=str, choices=['wandb', 'tb'])
     parser.add_argument("--results_dir", default='Results', type=str)
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)

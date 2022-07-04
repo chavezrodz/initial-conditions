@@ -9,13 +9,21 @@ class MAPE(nn.Module):
         super().__init__()
         
     def forward(self, y_pred, y):
-        return ((y - y_pred)/y).abs().mean()
+        return ((y - y_pred)/y).abs()
 
+
+class MAPE_tweaked(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+    def forward(self, y_pred, y):
+        return ((y - y_pred)/y_pred).abs()
 
 class Wrapper(LightningModule):  
     def __init__(self,
                 core_model,
-                norms, 
+                norms,
+                rm_zeros,
                 x_only,
                 double_data_by_sym,
                 criterion, 
@@ -26,6 +34,7 @@ class Wrapper(LightningModule):
         super().__init__()
         self.core_model = core_model
         self.norms = norms
+        self.rm_zeros = rm_zeros
         self.x_only = x_only
         self.double_data_by_sym = double_data_by_sym
         self.criterion = criterion
@@ -33,8 +42,9 @@ class Wrapper(LightningModule):
         self.amsgrad = amsgrad
 
         self.pc_err = MAPE()
-        self.abs_err = nn.L1Loss()
-        self.mse = nn.MSELoss()
+        self.pc_err_tweaked = MAPE_tweaked()
+        self.abs_err = nn.L1Loss(reduce=False)
+        self.mse = nn.MSELoss(reduce=False)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
@@ -45,10 +55,14 @@ class Wrapper(LightningModule):
         return optimizer
 
     def get_metrics(self, pred, y):
+        if self.rm_zeros:
+            y = torch.where(y == 0.0, torch.nan, y)
+
         metrics = dict(
-            abs_err=self.abs_err(pred, y),
-            pc_err=self.pc_err(pred, y),
-            mse=self.mse(pred, y),
+            abs_err=torch.nanmean(self.abs_err(pred, y)),
+            pc_err=torch.nanmean(self.pc_err(pred, y)),
+            pc_err_tweaked=torch.nanmean(self.pc_err_tweaked(pred, y)),
+            mse=torch.nanmean(self.mse(pred, y)),
         )
         return metrics
 
@@ -112,14 +126,14 @@ class Wrapper(LightningModule):
 
         metrics_scaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
         self.log_dict(
-            {f'validation/{k}/scaled': v for k, v in metrics_scaled.items()},
+            {f'validation/scaled/{k}': v for k, v in metrics_scaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
             )
 
         pred, y = self.unscale(pred), self.unscale(y)
         metrics_unscaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
         self.log_dict(
-            {f'validation/{k}/unscaled': v for k, v in metrics_unscaled.items()},
+            {f'validation/unscaled/{k}': v for k, v in metrics_unscaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
             )
         return metrics_scaled[self.criterion]
@@ -130,15 +144,14 @@ class Wrapper(LightningModule):
 
         metrics_scaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
         self.log_dict(
-            {f'{k}/scaled': v for k, v in metrics_scaled.items()},
+            {f'scaled/{k}': v for k, v in metrics_scaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
             )
 
         pred, y = self.unscale(pred), self.unscale(y)
-        print(pred, y)
         metrics_unscaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
         self.log_dict(
-            {f'{k}/unscaled': v for k, v in metrics_unscaled.items()},
+            {f'unscaled/{k}': v for k, v in metrics_unscaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
             )
         return metrics_scaled[self.criterion]
