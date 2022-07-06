@@ -52,7 +52,7 @@ def save_checkpt(filename, outfile):
     pass
 
 
-def get_norms(iterator):
+def get_norms(iterator, scale_targets=False):
     arrays = list()
     for x in iterator:
         arrays.append(x)
@@ -66,9 +66,11 @@ def get_norms(iterator):
     norms_in = norms_in.repeat(1,2)
 
     norms_out = torch.zeros((2,16))
-    norms_out[0] = cc.mean(dim=(0, 2, 3))
-    norms_out[1] = cc.std(dim=(0, 2, 3))
-
+    if scale_targets:
+        norms_out[0] = cc.mean(dim=(0, 2, 3))
+        norms_out[1] = cc.std(dim=(0, 2, 3))
+    else:
+        norms_out[1] = 1
     norms = torch.cat([norms_in, norms_out], dim=1)
     return norms
 

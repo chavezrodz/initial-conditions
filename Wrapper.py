@@ -4,20 +4,6 @@ import torch.optim
 import torch.nn as nn
 from pytorch_lightning import LightningModule
 
-class MAPE(nn.Module):
-    def __init__(self):
-        super().__init__()
-        
-    def forward(self, y_pred, y):
-        return ((y - y_pred)/y).abs()
-
-
-class MAPE_tweaked(nn.Module):
-    def __init__(self):
-        super().__init__()
-        
-    def forward(self, y_pred, y):
-        return ((y - y_pred)/y_pred).abs()
 
 class Wrapper(LightningModule):  
     def __init__(self,
@@ -41,11 +27,6 @@ class Wrapper(LightningModule):
         self.lr = lr
         self.amsgrad = amsgrad
 
-        self.pc_err = MAPE()
-        self.pc_err_tweaked = MAPE_tweaked()
-        self.abs_err = nn.L1Loss(reduce=False)
-        self.mse = nn.MSELoss(reduce=False)
-
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
             self.parameters(),
@@ -55,14 +36,32 @@ class Wrapper(LightningModule):
         return optimizer
 
     def get_metrics(self, pred, y):
+        """
+        compute element metric first, final mean taken in dict
+        """
+
         if self.rm_zeros:
             y = torch.where(y == 0.0, torch.nan, y)
 
+        # per plane
+        sq_err = torch.square(pred - y).sum(dim=(2,3))/torch.square(y).sum(dim=(2,3))
+        # per batch per feature
+        sq_err = sq_err.mean(dim=1)
+
+        abs_err = (pred - y).abs().sum(dim=(2,3))/y.abs().sum(dim=(2,3))
+        abs_err = abs_err.mean(dim=1)
+
+        sum_err = (pred.sum(dim=(2, 3)) - y.sum(dim=(2, 3)))/y.sum(dim=(2, 3))
+        sum_err = sum_err.mean(dim=1)
+
         metrics = dict(
-            abs_err=torch.nanmean(self.abs_err(pred, y)),
-            pc_err=torch.nanmean(self.pc_err(pred, y)),
-            pc_err_tweaked=torch.nanmean(self.pc_err_tweaked(pred, y)),
-            mse=torch.nanmean(self.mse(pred, y)),
+            # abs_err=self.abs_err(pred, y),
+            # pc_err=self.pc_err(pred, y),
+            # pc_err_tweaked=self.pc_err_tweaked(pred, y),
+            sq_err=torch.nanmean(chisq),
+            sum_err=torch.nanmean(sum_err),
+            abs_err=torch.nanmean(rel_err)
+
         )
         return metrics
 
@@ -112,7 +111,7 @@ class Wrapper(LightningModule):
         pred, y = self.predict_step(batch, batch_idx)
         batch_size = y.shape[0]
 
-        metrics_scaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
+        metrics_scaled = self.get_metrics(pred, y)
         self.log_dict(
             {f'train/{k}': v for k, v in metrics_scaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
@@ -123,35 +122,21 @@ class Wrapper(LightningModule):
     def validation_step(self, batch, batch_idx):
         pred, y = self.predict_step(batch, batch_idx)
         batch_size = y.shape[0]
-
-        metrics_scaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
+        metrics_scaled = self.get_metrics(pred, y)
         self.log_dict(
-            {f'validation/scaled/{k}': v for k, v in metrics_scaled.items()},
+            {f'validation/{k}': v for k, v in metrics_scaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
             )
 
-        pred, y = self.unscale(pred), self.unscale(y)
-        metrics_unscaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
-        self.log_dict(
-            {f'validation/unscaled/{k}': v for k, v in metrics_unscaled.items()},
-            on_epoch=True, on_step=False, batch_size=batch_size
-            )
         return metrics_scaled[self.criterion]
 
     def test_step(self, batch, batch_idx):
         pred, y = self.predict_step(batch, batch_idx)
         batch_size = y.shape[0]
 
-        metrics_scaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
+        metrics_scaled = self.get_metrics(pred, y)
         self.log_dict(
-            {f'scaled/{k}': v for k, v in metrics_scaled.items()},
-            on_epoch=True, on_step=False, batch_size=batch_size
-            )
-
-        pred, y = self.unscale(pred), self.unscale(y)
-        metrics_unscaled = self.get_metrics(pred.flatten(-3, -1), y.flatten(-3, -1))
-        self.log_dict(
-            {f'unscaled/{k}': v for k, v in metrics_unscaled.items()},
+            {f'test/{k}': v for k, v in metrics_scaled.items()},
             on_epoch=True, on_step=False, batch_size=batch_size
             )
         return metrics_scaled[self.criterion]

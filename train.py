@@ -96,7 +96,9 @@ if __name__ == '__main__':
     parser.add_argument("--model", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
 
-    parser.add_argument("--remove_zero_targets", default=True, type=bool)
+
+    parser.add_argument("--scale_targets", default=False, type=bool)
+    parser.add_argument("--remove_zero_targets", default=False, type=bool)
     parser.add_argument("--x_only", default=False, type=bool)
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--double_data_by_sym", default=True, type=bool)
@@ -107,15 +109,15 @@ if __name__ == '__main__':
     parser.add_argument("--epochs", default=25, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
-    parser.add_argument("--criterion", default='mse', type=str,
-                        choices=['pc_err', 'abs_err', 'mse'])
+    parser.add_argument("--criterion", default='sq_err', type=str,
+                        choices=['sum_err', 'abs_err', 'sq_err'])
 
     parser.add_argument("--logger", default='tb', type=str, choices=['wandb', 'tb'])
     parser.add_argument("--results_dir", default='Results', type=str)
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--gpu", default=False, type=bool)
-    parser.add_argument("--fast_dev_run", default=False, type=bool)
+    parser.add_argument("--fast_dev_run", default=True, type=bool)
     args = parser.parse_args()
 
     main(args)
