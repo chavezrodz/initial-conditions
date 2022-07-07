@@ -45,7 +45,7 @@ class Wrapper(LightningModule):
 
         # per plane
         sq_err = torch.square(pred - y).sum(dim=(2,3))/torch.square(y).sum(dim=(2,3))
-        # per batch per feature
+        # per feature
         sq_err = sq_err.mean(dim=1)
 
         abs_err = (pred - y).abs().sum(dim=(2,3))/y.abs().sum(dim=(2,3))
@@ -54,13 +54,14 @@ class Wrapper(LightningModule):
         sum_err = (pred.sum(dim=(2, 3)) - y.sum(dim=(2, 3)))/y.sum(dim=(2, 3))
         sum_err = sum_err.mean(dim=1)
 
+        # Per batch averages
         metrics = dict(
             # abs_err=self.abs_err(pred, y),
             # pc_err=self.pc_err(pred, y),
             # pc_err_tweaked=self.pc_err_tweaked(pred, y),
-            sq_err=torch.nanmean(chisq),
+            sq_err=torch.nanmean(sq_err),
             sum_err=torch.nanmean(sum_err),
-            abs_err=torch.nanmean(rel_err)
+            abs_err=torch.nanmean(abs_err)
 
         )
         return metrics
