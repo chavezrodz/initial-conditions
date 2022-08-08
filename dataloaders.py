@@ -52,7 +52,7 @@ def save_checkpt(filename, outfile):
     pass
 
 
-def get_norms(iterator, scale_targets=False):
+def get_norms(iterator):
     arrays = list()
     for x in iterator:
         arrays.append(x)
@@ -66,26 +66,21 @@ def get_norms(iterator, scale_targets=False):
     norms_in = norms_in.repeat(1,2)
 
     norms_out = torch.zeros((2,16))
-    if scale_targets:
-        norms_out[0] = cc.mean(dim=(0, 2, 3))
-        norms_out[1] = cc.std(dim=(0, 2, 3))
-    else:
-        norms_out[1] = 1
+    norms_out[1] = 1
     norms = torch.cat([norms_in, norms_out], dim=1)
     return norms
 
 class IPGDataset(Dataset):
-    def __init__(self, checkpt_path, cached=True):
-        self.checkpt_path = checkpt_path
+    def __init__(self, arrays_path, cached=True):
+        self.arrays_path = arrays_path
         self.cached = cached
 
-        self.filelist = filelist = os.listdir(checkpt_path)
+        self.filelist = filelist = os.listdir(arrays_path)
         self.n_samples = len(filelist)
-
         if self.cached:
             self.ABC = list()
             for file in filelist:
-                ABC = np.load(os.path.join(checkpt_path, file))
+                ABC = np.load(os.path.join(arrays_path, file))
                 self.ABC.append(ABC)
 
     def __len__(self):
@@ -95,7 +90,7 @@ class IPGDataset(Dataset):
         if self.cached:
             ABC = self.ABC[idx]
         else:
-            ABC = np.load(os.path.join(self.checkpt_path, self.filelist[idx]))
+            ABC = np.load(os.path.join(self.arrays_path, self.filelist[idx]))
         return ABC
 
 
@@ -104,26 +99,32 @@ def get_iterators(
     cached,
     batch_size,
     n_workers,
+    energy_subdir='5020',
     test_split=0.1,
     val_split=0.1
     ):
 
-    data_dir=os.path.join(datapath, '128x128/5020')
-    checkpt_path = os.path.join(data_dir, 'checkpt')
+    data_dir = os.path.join(datapath, '128x128')
+    energies = os.listdir(data_dir)
+    checkpt_path = os.path.join(datapath, 'processed')
     checkpt_exists = os.path.exists(checkpt_path)
-    arrays_path = os.path.join(checkpt_path, 'arrays')
 
     if not checkpt_exists:
         print("Making Preprocess Checkpoint")
-        os.makedirs(arrays_path, exist_ok=True)
-        filelist = os.listdir(data_dir)
-        for file in filelist:
-            filename = os.path.join(data_dir, file)
-            outfile = os.path.join(arrays_path, file[:-4]+'.npy')
-            save_checkpt(filename, outfile)
+        for energy in energies:
+            print(f'processing energy {energy}')
+            energy_src = os.path.join(data_dir, energy)
+            energy_chpt = os.path.join(checkpt_path, energy)
+            os.makedirs(os.path.join(energy_chpt, 'arrays'), exist_ok=True)
+            for file in os.listdir(energy_src):
+                print(f'\t {file}')
+                filename = os.path.join(energy_src, file)
+                outfile = os.path.join(energy_chpt, 'arrays', file[:-4]+'.npy')
+                save_checkpt(filename, outfile)
     else:
         print("Using Checkpoint")
 
+    arrays_path = os.path.join(checkpt_path, energy_subdir, 'arrays')
     dataset = IPGDataset(arrays_path, cached=cached)
     total_len = len(dataset)
     test_size = int(test_split * total_len)
