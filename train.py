@@ -14,6 +14,7 @@ def make_file_prefix(args):
     file_prefix = 'M_' + str(args.model)
     file_prefix += '_n_layers_' + str(args.n_layers)
     file_prefix += '_hid_dim_' + str(args.hidden_dim)
+    file_prefix += '_val_pc_err'
     return file_prefix
 
 
@@ -45,7 +46,7 @@ def main(args):
         save_top_k=1,
         monitor='validation/'+args.criterion,
         mode="min",
-        filename=make_file_prefix(args),#+'{validation/sq_err:.2e}',
+        filename=make_file_prefix(args)+'_{validation/sq_err:.2e}',
         auto_insert_metric_name=False,
         save_last=False
         )
@@ -120,7 +121,7 @@ if __name__ == '__main__':
     parser.add_argument("--x_only", default=False, type=bool)
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--double_data_by_sym", default=True, type=bool)
-    parser.add_argument("--cached", default=False, type=bool)
+    parser.add_argument("--cached", default=True, type=bool)
     parser.add_argument("--max_samples", default=64, type=int,
                         help='-1 for all')
 
