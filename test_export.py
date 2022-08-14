@@ -8,7 +8,7 @@ from dataloaders  import get_iterators
 from Model import Model
 from UNET import UNET
 from Wrapper import Wrapper
-
+from pytorch_lightning import Trainer
 
 def load_model(args, norms):
     h_dim = args.hidden_dim
@@ -94,9 +94,16 @@ def main(args):
     model = load_model(args, norms)
 
     if args.include_test:
-        for batch in test_dl:
-            pred, y = model.predict_step(batch,0)
-            visualize_target_output(pred.detach(), y.detach())
+        trainer = Trainer(logger=False)
+        predictions = trainer.predict(model, test_dl)
+        print(predictions[0][1])
+        for batch in predictions:
+            pred, _, fns = batch
+            for idx, file_nb in enumerate(fns):
+                filename = 'pred_' + file_nb + '.dat'
+                print(filename)
+                data = pred[idx]
+        #     visualize_target_output(pred.detach(), y.detach())
 
 
     # Exporting

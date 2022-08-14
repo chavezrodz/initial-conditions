@@ -95,7 +95,8 @@ class Wrapper(LightningModule):
 
     def predict_step(self, batch, batch_idx):
         # scale everything, including targets for loss calc
-        abc = self.scale(batch)
+        data, file_nb = batch
+        abc = self.scale(data)
         # combining inputs, doubling inputs for symetry ab, ba
         a, b, c = abc[:, :16], abc[:, 16:32], abc[:, 32:48]
         if self.double_data_by_sym:
@@ -106,10 +107,10 @@ class Wrapper(LightningModule):
         if self.x_only:
             x, y = (a[..., 8:, :, :], b[..., 8:, :, :]), c[..., 8:, :, :]
         pred = self.forward(x)
-        return pred, y
+        return pred, y, file_nb
 
     def training_step(self, batch, batch_idx):
-        pred, y = self.predict_step(batch, batch_idx)
+        pred, y, _ = self.predict_step(batch, batch_idx)
         batch_size = y.shape[0]
 
         metrics_scaled = self.get_metrics(pred, y)
@@ -121,7 +122,7 @@ class Wrapper(LightningModule):
         return metrics_scaled[self.criterion]
 
     def validation_step(self, batch, batch_idx):
-        pred, y = self.predict_step(batch, batch_idx)
+        pred, y, _ = self.predict_step(batch, batch_idx)
         batch_size = y.shape[0]
         metrics_scaled = self.get_metrics(pred, y)
         self.log_dict(
@@ -132,7 +133,7 @@ class Wrapper(LightningModule):
         return metrics_scaled[self.criterion]
 
     def test_step(self, batch, batch_idx):
-        pred, y = self.predict_step(batch, batch_idx)
+        pred, y, _ = self.predict_step(batch, batch_idx)
         batch_size = y.shape[0]
 
         metrics_scaled = self.get_metrics(pred, y)

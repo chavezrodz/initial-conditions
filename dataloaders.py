@@ -55,7 +55,7 @@ def save_checkpt(filename, outfile):
 def get_norms(iterator):
     arrays = list()
     for x in iterator:
-        arrays.append(x)
+        arrays.append(x[0])
     arrays = torch.cat(arrays, dim=0)
     aa, bb, cc = arrays[:, :16], arrays[:, 16:32], arrays[:, 32:48]
 
@@ -75,23 +75,27 @@ class IPGDataset(Dataset):
         self.arrays_path = arrays_path
         self.cached = cached
 
-        self.filelist = filelist = os.listdir(arrays_path)
-        self.n_samples = len(filelist)
+        self.filelist = os.listdir(arrays_path)
+        self.n_samples = len(self.filelist)
         if self.cached:
-            self.ABC = list()
-            for file in filelist:
-                ABC = np.load(os.path.join(arrays_path, file))
-                self.ABC.append(ABC)
+            self.ABC_fn = list()
+            for file in self.filelist:
+                file_nb = file[:-4]
+                ABC = np.load(os.path.join(self.arrays_path, file))
+                self.ABC_fn.append((ABC, file_nb))
 
     def __len__(self):
         return self.n_samples
 
     def __getitem__(self, idx):
         if self.cached:
-            ABC = self.ABC[idx]
+            ABC_fn = self.ABC_fn[idx]
         else:
-            ABC = np.load(os.path.join(self.arrays_path, self.filelist[idx]))
-        return ABC
+            file = self.filelist[idx]
+            file_nb = file[:-4]
+            ABC = np.load(os.path.join(self.arrays_path, file))
+            ABC_fn = (ABC, file_nb)
+        return ABC_fn
 
 
 def get_iterators(
