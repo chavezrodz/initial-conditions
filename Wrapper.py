@@ -73,22 +73,6 @@ class Wrapper(LightningModule):
         abc = (torch.permute(abc, (0, -1, -3, -2))).float()
         return abc
 
-    def unscale(self, y):
-        """
-        outputs only
-        """
-        dims_used = y.shape[-3]
-        norms = self.norms.type_as(y)
-        if dims_used == 8:
-            norms = norms[:, -16:-8]
-        elif dims_used == 16:
-            norms = norms[:, -16:]
-
-        y = torch.permute(y, (0, -2,-1,-3))
-        y = y*norms[1] + norms[0]
-        y = (torch.permute(y, (0, -1, -3, -2)))
-        return y
-
     def forward(self, x):
         x = torch.cat(x, dim=-3)
         return self.core_model(x)
