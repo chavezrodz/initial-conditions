@@ -9,23 +9,16 @@ import wandb
 from Model import Model
 from UNET import UNET
 from Wrapper import Wrapper
-
-def make_file_prefix(args):
-    file_prefix = 'M_' + str(args.model)
-    file_prefix += '_n_layers_' + str(args.n_layers)
-    file_prefix += '_hid_dim_' + str(args.hidden_dim)
-    file_prefix += '_val_pc_err'
-    return file_prefix
+from utils import make_file_prefix 
 
 
 def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
 
+    devices = 'auto'
     if args.gpu:
-        devices = 'auto'
         n_workers = 0
     else:
-        devices = 'auto'
         n_workers = 8
 
     if args.logger == 'tb':
@@ -137,7 +130,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--gpu", default=False, type=bool)
-    parser.add_argument("--fast_dev_run", default=True, type=bool)
+    parser.add_argument("--fast_dev_run", default=False, type=bool)
     args = parser.parse_args()
 
     main(args)

@@ -50,6 +50,15 @@ def three_to_two(array, x_values):
 
     return array
 
+def make_file_prefix(args):
+    file_prefix = 'M_' + str(args.model)
+    file_prefix += '_n_layers_' + str(args.n_layers)
+    file_prefix += '_hid_dim_' + str(args.hidden_dim)
+    file_prefix += '_val_err'
+    return file_prefix
+
+
+
 
 
 # source = np.loadtxt('data/128x128/5020/100.dat')

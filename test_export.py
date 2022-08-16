@@ -103,25 +103,29 @@ def main(args):
         trainer = Trainer(logger=False)
         predictions = trainer.predict(model, test_dl)
 
-        sample_file = 'data/128x128/5020/0.dat'
-        header = sample_file
+        outfolder = os.path.join('Results', 'Predictions', args.res, args.energy)
+        os.makedirs(outfolder, exist_ok=True)
+        
+        sample_file = os.path.join('data',args.res, args.energy,'0.dat')
+        f = open(sample_file, 'r')
+        header = f.readline()
+        f.close()
         data_sample = np.loadtxt(sample_file)
         x_values = np.sort(np.unique(data_sample[:, 0]))
 
         for batch in predictions:
             pred, target, fns = batch
             for idx, file_nb in enumerate(fns):
-                filename = 'pred_' + file_nb + '.dat'
-                outfolder = os.path.join('Results', 'Predictions', filename)
-                data = pred[idx].detach()
+                outfile = os.path.join(outfolder, 'pred_'+file_nb+'.dat')
 
-                source = np.loadtxt('data/128x128/5020/'+str(file_nb)+'.dat')
+                source = np.loadtxt(
+                    os.path.join('data',args.res, args.energy,str(file_nb)+'.dat')
+                    )
                 processed_target = three_to_two(target[idx].permute((1,2,0)), x_values)
                 assert np.allclose(source[:, -16:], processed_target[:, -16:])
 
                 arr = three_to_two(pred[idx].permute((1,2,0)), x_values)
-                # save arr
-                exit()
+                np.savetxt(outfile, arr, delimiter=',', header=header)
 
     # Exporting
     if args.export:
@@ -151,9 +155,10 @@ if __name__ == '__main__':
     parser.add_argument("--export", default=False, type=bool)
 
     parser.add_argument("--results_dir", default='Results', type=str)
-    parser.add_argument("--proj_dir", default='rate_integrating', type=str)
+    parser.add_argument("--res", default='128x128', type=str)
+    parser.add_argument("--energy", default='5020', type=str)
+
     parser.add_argument("--datapath", default='data', type=str)
-    parser.add_argument("--which_spacing", default='both', type=str)
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--cached", default=True, type=bool)
     parser.add_argument("--x_only", default=False, type=bool)
