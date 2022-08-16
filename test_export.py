@@ -9,6 +9,7 @@ from Model import Model
 from UNET import UNET
 from Wrapper import Wrapper
 from pytorch_lightning import Trainer
+from utils import three_to_two
 
 def load_model(args, norms):
     h_dim = args.hidden_dim
@@ -68,7 +69,7 @@ def visualize_target_output(pred, y):
         [pred.max().item(), y.max().item()]
         ))
 
-    fig,axs = plt.subplots(nrows=1, ncols=2, sharey=True, sharex=True)
+    fig, axs = plt.subplots(nrows=1, ncols=2, sharey=True, sharex=True)
     im = axs[0].imshow(pred, vmin=minmin, vmax=maxmax, cmap='bone')
     im = axs[1].imshow(y, vmin=minmin, vmax=maxmax, cmap='bone')
 
@@ -81,6 +82,7 @@ def visualize_target_output(pred, y):
     fig.colorbar(im, cax=cbar_ax)
     plt.show()
 
+
 def main(args):
     results_dir = args.results_dir
 
@@ -88,23 +90,38 @@ def main(args):
         datapath=args.datapath,
         cached=args.cached,
         batch_size=args.batch_size,
-        n_workers=1
+        n_workers=8
         )
 
     model = load_model(args, norms)
 
+    if args.visualize:
+        # visualize_target_output(pred.detach(), y.detach())
+        pass
+
     if args.include_test:
         trainer = Trainer(logger=False)
         predictions = trainer.predict(model, test_dl)
-        print(predictions[0][1])
+
+        sample_file = 'data/128x128/5020/0.dat'
+        header = sample_file
+        data_sample = np.loadtxt(sample_file)
+        x_values = np.sort(np.unique(data_sample[:, 0]))
+
         for batch in predictions:
-            pred, _, fns = batch
+            pred, target, fns = batch
             for idx, file_nb in enumerate(fns):
                 filename = 'pred_' + file_nb + '.dat'
-                print(filename)
-                data = pred[idx]
-        #     visualize_target_output(pred.detach(), y.detach())
+                outfolder = os.path.join('Results', 'Predictions', filename)
+                data = pred[idx].detach()
 
+                source = np.loadtxt('data/128x128/5020/'+str(file_nb)+'.dat')
+                processed_target = three_to_two(target[idx].permute((1,2,0)), x_values)
+                assert np.allclose(source[:, -16:], processed_target[:, -16:])
+
+                arr = three_to_two(pred[idx].permute((1,2,0)), x_values)
+                # save arr
+                exit()
 
     # Exporting
     if args.export:
@@ -130,7 +147,9 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     # Managing params
     parser.add_argument("--include_test", default=True, type=bool)
+    parser.add_argument("--visualize", default=False, type=bool)
     parser.add_argument("--export", default=False, type=bool)
+
     parser.add_argument("--results_dir", default='Results', type=str)
     parser.add_argument("--proj_dir", default='rate_integrating', type=str)
     parser.add_argument("--datapath", default='data', type=str)

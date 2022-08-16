@@ -1,52 +1,12 @@
 import os
 import numpy as np
 from torch.utils.data import DataLoader, Dataset
+from utils import two_to_three
 import torch
-
-def value_to_idx(x):
-    unique_values = np.unique(x)
-    indices = np.argsort(unique_values)
-    for idx,value in enumerate(unique_values):
-        x[np.where(x == value)] = indices[idx]
-    return x.astype(int)
-
-
-def read_file(file, n_channels=16):
-    arr = np.loadtxt(file)
-    len_arr = len(arr)
-    pts_per_dim = int(np.sqrt(len_arr))
-
-    y = value_to_idx(arr[:, 1])
-    x = value_to_idx(arr[:, 0])
-
-    A = np.zeros((pts_per_dim, pts_per_dim, n_channels))
-    B = np.zeros((pts_per_dim, pts_per_dim, n_channels))
-    C = np.zeros((pts_per_dim, pts_per_dim, n_channels))
-
-    A[x, y] = arr[:, 2:18]
-    B[x, y] = arr[:, 18:34]
-    C[x, y] = arr[:, 34:50]
-
-    A = torch.tensor(A).float()
-    B = torch.tensor(B).float()
-    C = torch.tensor(C).float()
-
-    A = torch.permute(A, (2, 0, 1))
-    B = torch.permute(B, (2, 0, 1))
-    C = torch.permute(C, (2, 0, 1))
-
-    return A, B, C
 
 def save_checkpt(filename, outfile):
     arr = np.loadtxt(filename)
-    len_arr, cols  = arr.shape
-    pts_per_dim = int(np.sqrt(len_arr))
-
-    y = value_to_idx(arr[:, 1])
-    x = value_to_idx(arr[:, 0])
-
-    A = np.zeros((pts_per_dim, pts_per_dim, cols - 2))
-    A[x, y] = arr[:, 2:]
+    A = two_to_three(arr)
     A = np.transpose(A, (2, 0, 1))
     np.save(outfile, A)
     pass

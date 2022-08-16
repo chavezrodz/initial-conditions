@@ -102,6 +102,10 @@ class Wrapper(LightningModule):
         if self.double_data_by_sym:
             a, b = torch.cat([a, b], axis=0), torch.cat([b, a], axis=0)
             c = torch.cat([c, c], axis=0)
+
+            # Commented out because no need to check doubled data on test
+            # file_nb = (*file_nb, *file_nb)
+
         x, y = (a, b), c
         # Slicing x components only
         if self.x_only:
