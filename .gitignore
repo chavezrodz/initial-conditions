@@ -1,4 +1,5 @@
 .venv
+wandb
 data
 **/__pycache__
 Results
