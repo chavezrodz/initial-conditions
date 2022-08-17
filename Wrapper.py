@@ -9,10 +9,7 @@ class Wrapper(LightningModule):
     def __init__(self,
                 core_model,
                 norms,
-                rm_zeros,
-                x_only,
-                double_data_by_sym,
-                criterion, 
+                criterion,
                 lr, 
                 amsgrad,
                 ):
@@ -20,9 +17,6 @@ class Wrapper(LightningModule):
         super().__init__()
         self.core_model = core_model
         self.norms = norms
-        self.rm_zeros = rm_zeros
-        self.x_only = x_only
-        self.double_data_by_sym = double_data_by_sym
         self.criterion = criterion
         self.lr = lr
         self.amsgrad = amsgrad
@@ -39,9 +33,6 @@ class Wrapper(LightningModule):
         """
         compute element metric first, final mean taken in dict
         """
-
-        if self.rm_zeros:
-            y = torch.where(y == 0.0, torch.nan, y)
 
         # per plane
         sq_err = torch.square(pred - y).sum(dim=(2,3))/torch.square(y).sum(dim=(2,3))
@@ -80,18 +71,17 @@ class Wrapper(LightningModule):
         abc = self.scale(data)
         # combining inputs, doubling inputs for symetry ab, ba
         a, b, c = abc[:, :16], abc[:, 16:32], abc[:, 32:48]
-        if self.double_data_by_sym:
-            a, b = torch.cat([a, b], axis=0), torch.cat([b, a], axis=0)
-            c = torch.cat([c, c], axis=0)
 
-            # Commented out because no need to check doubled data on test
-            # file_nb = (*file_nb, *file_nb)
+        # double data by symetry to enforce abellian func:
+        a, b = torch.cat([a, b], axis=0), torch.cat([b, a], axis=0)
+        c = torch.cat([c, c], axis=0)
+
+        # Commented out because no need to check doubled data on test
+        # file_nb = (*file_nb, *file_nb)
 
         x, y = (a, b), c
-        # Slicing x components only
-        if self.x_only:
-            x, y = (a[..., 8:, :, :], b[..., 8:, :, :]), c[..., 8:, :, :]
         pred = self.forward(x)
+
         return pred, y, file_nb
 
     def training_step(self, batch, batch_idx):

@@ -62,9 +62,8 @@ def main(args):
         )
 
     # Only x channels
-    input_dim = 8 if args.x_only else 16
-    input_dim *= 2 # concatenating A&B
-    output_dim = 8 if args.x_only else 16
+    # 8 per dim, two dims, two inputs (a&b)
+    input_dim, output_dim = 32, 16
 
     if args.model == 'MLP': 
         model = Model(
@@ -85,9 +84,6 @@ def main(args):
     Wrapped_Model = Wrapper(
         model,
         norms,
-        rm_zeros=args.remove_zero_targets,
-        x_only=args.x_only,
-        double_data_by_sym=args.double_data_by_sym,
         criterion=args.criterion,
         lr=args.lr,
         amsgrad=args.amsgrad
@@ -110,10 +106,7 @@ if __name__ == '__main__':
     parser.add_argument("--model", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
 
-    parser.add_argument("--remove_zero_targets", default=False, type=bool)
-    parser.add_argument("--x_only", default=False, type=bool)
     parser.add_argument("--batch_size", default=16, type=int)
-    parser.add_argument("--double_data_by_sym", default=True, type=bool)
     parser.add_argument("--cached", default=True, type=bool)
     parser.add_argument("--max_samples", default=64, type=int,
                         help='-1 for all')

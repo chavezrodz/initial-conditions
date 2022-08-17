@@ -19,10 +19,7 @@ def load_model(args, norms):
         results_dir, "saved_models", model_file
         )
 
-    input_dim = 8 if args.x_only else 16
-    input_dim *= 2 # concatenating A&B
-    output_dim = 8 if args.x_only else 16
-
+    input_dim, output_dim = 32, 16
     if args.model == 'MLP': 
         model = Model(
             input_dim=input_dim,
@@ -41,9 +38,6 @@ def load_model(args, norms):
     wrapped_model = Wrapper.load_from_checkpoint(
         core_model=model,
         norms=norms,
-        rm_zeros=args.remove_zero_targets,
-        x_only=args.x_only,
-        double_data_by_sym=args.double_data_by_sym,
         criterion=args.criterion,
         lr=args.lr,
         amsgrad=args.amsgrad,
@@ -158,11 +152,8 @@ if __name__ == '__main__':
 
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--cached", default=True, type=bool)
-    parser.add_argument("--x_only", default=False, type=bool)
-    parser.add_argument("--remove_zero_targets", default=False, type=bool)
 
     # training params
-    parser.add_argument("--double_data_by_sym", default=True, type=bool)
     parser.add_argument("--criterion", default='sq_err', type=str,
                         choices=['sum_err', 'abs_err', 'sq_err'])
     parser.add_argument("--lr", default=1e-3, type=float)
@@ -172,7 +163,7 @@ if __name__ == '__main__':
     parser.add_argument("--model", default='UNET', type=str)
     parser.add_argument("--hidden_dim", default=16, type=int)
     parser.add_argument("--n_layers", default=4, type=int)
-    parser.add_argument("--pc_err", default='5.13e-01', type=str)
+    parser.add_argument("--pc_err", default='1.00e+00', type=str)
 
     # Rate Integrating
     args = parser.parse_args()
