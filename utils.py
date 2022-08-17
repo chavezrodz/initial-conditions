@@ -1,7 +1,6 @@
 import numpy as np
 
 def value_to_idx(x):
-    x = x.copy()
     unique_values = np.sort(np.unique(x))
     for idx, value in enumerate(reversed(unique_values)):
         x[np.argwhere(x == value)] = len(unique_values) - 1 - idx

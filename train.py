@@ -10,8 +10,9 @@ from Model import Model
 from UNET import UNET
 from Wrapper import Wrapper
 from utils import make_file_prefix 
+from memory_profiler import profile
 
-
+@profile
 def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
 
