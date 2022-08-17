@@ -10,8 +10,9 @@ from Model import Model
 from UNET import UNET
 from Wrapper import Wrapper
 from utils import make_file_prefix 
+from memory_profiler import profile
 
-
+@profile
 def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
 
@@ -104,7 +105,7 @@ if __name__ == '__main__':
                         choices=['MLP', 'UNET'])
 
     parser.add_argument("--batch_size", default=16, type=int)
-    parser.add_argument("--cached", default=True, type=bool)
+    parser.add_argument("--cached", default=False, type=bool)
     parser.add_argument("--max_samples", default=64, type=int,
                         help='-1 for all')
 

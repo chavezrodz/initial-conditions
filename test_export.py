@@ -47,7 +47,6 @@ def load_model(args, norms):
     return wrapped_model
 
 def visualize_target_output(pred, y):
-    pred, y = pred[0], y[0]
     pred, y = pred.mean(dim=0), y.mean(dim=0)
 
     minmin = torch.min(torch.tensor(
@@ -83,14 +82,18 @@ def main(args):
         )
 
     model = load_model(args, norms)
+    trainer = Trainer(logger=False)
+    predictions = trainer.predict(model, test_dl)
 
     if args.visualize:
-        # visualize_target_output(pred.detach(), y.detach())
+        for batch in predictions:
+            pred, target, fns = batch
+            for idx, file_nb in enumerate(fns):
+                visualize_target_output(pred[idx].detach(), target[idx].detach())
+
         pass
 
     if args.include_test:
-        trainer = Trainer(logger=False)
-        predictions = trainer.predict(model, test_dl)
 
         outfolder = os.path.join('Results', 'Predictions', args.res, args.energy)
         os.makedirs(outfolder, exist_ok=True)
@@ -139,8 +142,8 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     # Managing params
-    parser.add_argument("--include_test", default=True, type=bool)
-    parser.add_argument("--visualize", default=False, type=bool)
+    parser.add_argument("--include_test", default=False, type=bool)
+    parser.add_argument("--visualize", default=True, type=bool)
     parser.add_argument("--export", default=False, type=bool)
 
     parser.add_argument("--results_dir", default='Results', type=str)
@@ -163,10 +166,9 @@ if __name__ == '__main__':
     parser.add_argument("--model", default='UNET', type=str)
     parser.add_argument("--hidden_dim", default=16, type=int)
     parser.add_argument("--n_layers", default=4, type=int)
-    parser.add_argument("--pc_err", default='1.00e+00', type=str)
+    parser.add_argument("--pc_err", default='4.78e-01', type=str)
 
     # Rate Integrating
     args = parser.parse_args()
 
     main(args)
-7
