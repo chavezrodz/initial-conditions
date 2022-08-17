@@ -56,12 +56,9 @@ class Wrapper(LightningModule):
 
         # Per batch averages
         metrics = dict(
-            # abs_err=self.abs_err(pred, y),
-            # pc_err=self.pc_err(pred, y),
-            # pc_err_tweaked=self.pc_err_tweaked(pred, y),
-            sq_err=torch.nanmean(sq_err),
-            sum_err=torch.nanmean(sum_err),
-            abs_err=torch.nanmean(abs_err)
+            sq_err=sq_err.mean(),
+            sum_err=sum_err.mean(),
+            abs_err=abs_err.mean()
 
         )
         return metrics

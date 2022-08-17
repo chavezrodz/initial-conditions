@@ -9,17 +9,12 @@ from Model import Model
 from UNET import UNET
 from Wrapper import Wrapper
 from pytorch_lightning import Trainer
-from utils import three_to_two
+from utils import three_to_two, make_file_prefix
 
 def load_model(args, norms):
-    h_dim = args.hidden_dim
-    n_layers = args.n_layers
-    method = args.model
     results_dir = args.results_dir
-    pc_err = args.pc_err
 
-    model_file = f'M_{method}_n_layers_{n_layers}_hid_dim_{h_dim}'
-    model_file += f'_{pc_err}.ckpt'
+    model_file = make_file_prefix(args)+f'_{args.pc_err}.ckpt'
     model_path = os.path.join(
         results_dir, "saved_models", model_file
         )
@@ -155,14 +150,18 @@ if __name__ == '__main__':
     parser.add_argument("--export", default=False, type=bool)
 
     parser.add_argument("--results_dir", default='Results', type=str)
+    parser.add_argument("--datapath", default='data', type=str)
+
+    # data params
     parser.add_argument("--res", default='128x128', type=str)
     parser.add_argument("--energy", default='5020', type=str)
 
-    parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--cached", default=True, type=bool)
     parser.add_argument("--x_only", default=False, type=bool)
     parser.add_argument("--remove_zero_targets", default=False, type=bool)
+
+    # training params
     parser.add_argument("--double_data_by_sym", default=True, type=bool)
     parser.add_argument("--criterion", default='sq_err', type=str,
                         choices=['sum_err', 'abs_err', 'sq_err'])
