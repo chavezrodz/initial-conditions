@@ -16,10 +16,7 @@ def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
 
     devices = 'auto'
-    if args.gpu:
-        n_workers = 0
-    else:
-        n_workers = 8
+    n_workers = args.num_workers
 
     if args.logger == 'tb':
         logger = TensorBoardLogger(
@@ -123,6 +120,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--gpu", default=False, type=bool)
+    parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument("--fast_dev_run", default=False, type=bool)
     args = parser.parse_args()
 
