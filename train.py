@@ -52,7 +52,7 @@ def main(args):
         devices=devices,
         max_epochs=args.epochs,
         fast_dev_run=args.fast_dev_run,
-        log_every_n_steps=10,
+        log_every_n_steps=5,
         callbacks=[checkpoint_callback],
         )
 
