@@ -22,6 +22,7 @@ def main(args):
     if args.logger == 'tb':
         logger = TensorBoardLogger(
             save_dir=os.path.join(args.results_dir, "TB_logs"),
+            name=make_file_prefix(args),
             default_hp_metric=True
             )
     elif args.logger == 'wandb':
@@ -40,7 +41,7 @@ def main(args):
         save_top_k=1,
         monitor='validation/'+args.criterion,
         mode="min",
-        filename=make_file_prefix(args)+'_{validation/sq_err:.2e}',
+        filename=make_file_prefix(args)+'_val_err_{validation/sq_err:.2e}',
         auto_insert_metric_name=False,
         save_last=False
         )
@@ -118,7 +119,6 @@ if __name__ == '__main__':
     parser.add_argument("--criterion", default='sq_err', type=str,
                         choices=['sum_err', 'abs_err', 'sq_err'])
     parser.add_argument("--add_sum_err", default=True, type=bool)
-
     parser.add_argument("--logger", default='tb', type=str, choices=['wandb', 'tb'])
     parser.add_argument("--results_dir", default='Results', type=str)
     parser.add_argument("--datapath", default='data', type=str)

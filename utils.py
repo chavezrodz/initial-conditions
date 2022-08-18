@@ -53,7 +53,6 @@ def make_file_prefix(args):
     file_prefix = 'M_' + str(args.model)
     file_prefix += '_n_layers_' + str(args.n_layers)
     file_prefix += '_hid_dim_' + str(args.hidden_dim)
-    file_prefix += '_val_err'
     return file_prefix
 
 
