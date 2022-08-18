@@ -95,7 +95,8 @@ def main(args):
     trainer.fit(
         Wrapped_Model,
         train,
-        val
+        val,
+        ckpt_path='.'
         )
 
     trainer.test(Wrapped_Model, test_dl)
@@ -108,10 +109,12 @@ if __name__ == '__main__':
     parser.add_argument("--model", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
 
+    # data params
+    parser.add_argument("--res", default='128x128', type=str)
+    parser.add_argument("--energy", default='5020', type=str)
+
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--cached", default=True, type=bool)
-    parser.add_argument("--max_samples", default=64, type=int,
-                        help='-1 for all')
 
     parser.add_argument("--epochs", default=25, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
@@ -119,11 +122,11 @@ if __name__ == '__main__':
     parser.add_argument("--criterion", default='sq_err', type=str,
                         choices=['sum_err', 'abs_err', 'sq_err'])
     parser.add_argument("--add_sum_err", default=True, type=bool)
+
     parser.add_argument("--logger", default='tb', type=str, choices=['wandb', 'tb'])
     parser.add_argument("--results_dir", default='Results', type=str)
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
-    parser.add_argument("--gpu", default=False, type=bool)
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument("--fast_dev_run", default=False, type=bool)
     args = parser.parse_args()

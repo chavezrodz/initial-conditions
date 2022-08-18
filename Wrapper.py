@@ -43,7 +43,7 @@ class Wrapper(LightningModule):
         abs_err = abs_err.mean(dim=1)
 
         sum_err = (pred.sum(dim=(2, 3)) - y.sum(dim=(2, 3)))/y.sum(dim=(2, 3))
-        sum_err = sum_err.mean(dim=1)
+        sum_err = sum_err.abs().mean(dim=1)
 
         # Per batch averages
         metrics = dict(

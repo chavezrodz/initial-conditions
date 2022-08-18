@@ -14,7 +14,7 @@ from utils import three_to_two, make_file_prefix
 def load_model(args, norms):
     results_dir = args.results_dir
 
-    model_file = make_file_prefix(args)+f'_{args.pc_err}.ckpt'
+    model_file = make_file_prefix(args)+f'_val_err_{args.pc_err}.ckpt'
     model_path = os.path.join(
         results_dir, "saved_models", model_file
         )
@@ -164,9 +164,9 @@ if __name__ == '__main__':
 
     # Model Params
     parser.add_argument("--model", default='UNET', type=str)
-    parser.add_argument("--hidden_dim", default=16, type=int)
+    parser.add_argument("--hidden_dim", default=32, type=int)
     parser.add_argument("--n_layers", default=4, type=int)
-    parser.add_argument("--pc_err", default='4.78e-01', type=str)
+    parser.add_argument("--pc_err", default='2.49e-01', type=str)
 
     # Rate Integrating
     args = parser.parse_args()
