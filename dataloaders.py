@@ -1,7 +1,8 @@
 import os
 import numpy as np
-from torch.utils.data import DataLoader, Dataset
+from torch.utils.data import DataLoader, Dataset, random_split
 from utils import two_to_three
+import pytorch_lightning as pl
 import torch
 
 def save_checkpt(filename, outfile):
@@ -12,11 +13,12 @@ def save_checkpt(filename, outfile):
     pass
 
 
-def get_norms(iterator):
+def get_norms(dataset):
     arrays = list()
-    for x in iterator:
-        arrays.append(x[0])
-    arrays = torch.cat(arrays, dim=0)
+    for idx in range(len(dataset)):
+        arr = dataset.__getitem__(idx)[0]
+        arrays.append(torch.tensor(arr))
+    arrays = torch.stack(arrays)
     aa, bb, cc = arrays[:, :16], arrays[:, 16:32], arrays[:, 32:48]
 
     arrays_in = torch.cat([aa, bb], dim=0)
@@ -29,6 +31,7 @@ def get_norms(iterator):
     norms_out[1] = 1
     norms = torch.cat([norms_in, norms_out], dim=1)
     return norms
+
 
 class IPGDataset(Dataset):
     def __init__(self, arrays_path, cached=True):
@@ -56,74 +59,62 @@ class IPGDataset(Dataset):
             ABC = np.load(os.path.join(self.arrays_path, file))
             ABC_fn = (ABC, file_nb)
         return ABC_fn
+    
+
+class DataModule(pl.LightningDataModule):
+    def __init__(self, args):
+        super().__init__()
+        self.cached = args.cached
+        self.batch_size = args.batch_size
+        self.num_workers = args.num_workers
+        self.test_split=0.1
+        self.val_split=0.1
+
+        self.input_dim, self.output_dim = 32, 16
+        self.energy = args.energy
 
 
-def get_iterators(
-    datapath,
-    cached,
-    batch_size,
-    n_workers,
-    energy_subdir='5020',
-    test_split=0.1,
-    val_split=0.1
-    ):
+        self.data_dir = os.path.join(args.datapath, args.res)
+        self.checkpt_path = os.path.join(args.datapath, 'processed')
+        self.energies = os.listdir(self.data_dir)
 
-    data_dir = os.path.join(datapath, '128x128')
-    energies = os.listdir(data_dir)
-    checkpt_path = os.path.join(datapath, 'processed')
-    checkpt_exists = os.path.exists(checkpt_path)
+    def prepare_data(self):
+        if not os.path.exists(self.checkpt_path):
+            print("Making Preprocess Checkpoint")
+            for energy in self.energies:
+                print(f'processing energy {energy}')
+                energy_src = os.path.join(self.data_dir, energy)
+                energy_chpt = os.path.join(self.checkpt_path, energy)
+                os.makedirs(os.path.join(energy_chpt, 'arrays'), exist_ok=True)
+                for file in os.listdir(energy_src):
+                    print(f'\t {energy} {file}')
+                    filename = os.path.join(energy_src, file)
+                    outfile = os.path.join(energy_chpt, 'arrays', file[:-4]+'.npy')
+                    save_checkpt(filename, outfile)
+        else:
+            print("Using Checkpoint")
 
-    if not checkpt_exists:
-        print("Making Preprocess Checkpoint")
-        for energy in energies:
-            print(f'processing energy {energy}')
-            energy_src = os.path.join(data_dir, energy)
-            energy_chpt = os.path.join(checkpt_path, energy)
-            os.makedirs(os.path.join(energy_chpt, 'arrays'), exist_ok=True)
-            for file in os.listdir(energy_src):
-                print(f'\t {file}')
-                filename = os.path.join(energy_src, file)
-                outfile = os.path.join(energy_chpt, 'arrays', file[:-4]+'.npy')
-                save_checkpt(filename, outfile)
-    else:
-        print("Using Checkpoint")
 
-    arrays_path = os.path.join(checkpt_path, energy_subdir, 'arrays')
-    dataset = IPGDataset(arrays_path, cached=cached)
-    total_len = len(dataset)
-    test_size = int(test_split * total_len)
-    train_size = total_len - test_size
-    val_size = int(val_split*train_size)
-    train_size = train_size - val_size
+    def setup(self, stage=None):
+        arrays_path = os.path.join(self.checkpt_path, self.energy, 'arrays')
+        dataset = IPGDataset(arrays_path, cached=self.cached)
 
-    train_ds, val_ds, test_ds = torch.utils.data.random_split(
-        dataset, [train_size, val_size, test_size]
-        )
+        total_len = len(dataset)
+        test_size = int(self.test_split * total_len)
+        train_size = total_len - test_size
+        val_size = int(self.val_split*train_size)
+        train_size = train_size - val_size
 
-    train_dl = DataLoader(
-        train_ds,
-        batch_size=batch_size,
-        drop_last=True,
-        shuffle=True,
-        num_workers=n_workers
-        )
+        self.train_ds, self.val_ds, self.test_ds = random_split(
+            dataset, [train_size, val_size, test_size]
+            )
+        self.norms = get_norms(self.train_ds)
 
-    val_dl = DataLoader(
-        val_ds,
-        batch_size=batch_size,
-        drop_last=True,
-        shuffle=False,
-        num_workers=n_workers
-        )
+    def train_dataloader(self):
+        return DataLoader(self.train_ds, batch_size=self.batch_size, num_workers=self.num_workers)
 
-    test_dl = DataLoader(
-        test_ds,
-        batch_size=batch_size,
-        drop_last=True,
-        shuffle=False,
-        num_workers=n_workers
-        )
+    def val_dataloader(self):
+        return DataLoader(self.val_ds, batch_size=self.batch_size, num_workers=self.num_workers)
 
-    norms = get_norms(train_dl)
-
-    return (train_dl, val_dl, test_dl), norms
+    def test_dataloader(self):
+        return DataLoader(self.test_ds, batch_size=self.batch_size, num_workers=self.num_workers)

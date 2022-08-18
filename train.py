@@ -1,6 +1,5 @@
 import os
 from argparse import ArgumentParser
-from dataloaders import get_iterators
 from pytorch_lightning import Trainer
 from pytorch_lightning import utilities
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
@@ -11,13 +10,12 @@ from UNET import UNET
 from Wrapper import Wrapper
 from utils import make_file_prefix 
 from memory_profiler import profile
+from dataloaders import DataModule
 
-@profile
+
+# @profile
 def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
-
-    devices = 'auto'
-    n_workers = args.num_workers
 
     if args.logger == 'tb':
         logger = TensorBoardLogger(
@@ -46,46 +44,39 @@ def main(args):
         save_last=False
         )
 
+
     trainer = Trainer(
         logger=logger,
         accelerator='auto',
-        devices=devices,
+        devices='auto',
         max_epochs=args.epochs,
         fast_dev_run=args.fast_dev_run,
-        log_every_n_steps=5,
+        log_every_n_steps=1,
         callbacks=[checkpoint_callback],
         )
 
-    (train, val, test_dl), norms = get_iterators(
-        datapath=args.datapath,
-        cached=args.cached,
-        batch_size=args.batch_size,
-        n_workers=n_workers
-        )
-
-    # Only x channels
-    # 8 per dim, two dims, two inputs (a&b)
-    input_dim, output_dim = 32, 16
+    dm = DataModule(args)
+    dm.setup()
 
     if args.model == 'MLP': 
         model = Model(
-            input_dim=input_dim,
+            input_dim=dm.input_dim,
             hidden_dim=args.hidden_dim,
             n_layers=args.n_layers,
-            output_dim=output_dim,
+            output_dim=dm.output_dim,
             )
     elif args.model == 'UNET':
         model = UNET(
-            input_dim=input_dim,
+            input_dim=dm.input_dim,
             hidden_dim=args.hidden_dim,
             n_layers=args.n_layers,
-            output_dim=output_dim,
+            output_dim=dm.output_dim,
             )
 
 
     Wrapped_Model = Wrapper(
         model,
-        norms,
+        dm.norms,
         criterion=args.criterion,
         lr=args.lr,
         amsgrad=args.amsgrad
@@ -94,12 +85,10 @@ def main(args):
 
     trainer.fit(
         Wrapped_Model,
-        train,
-        val,
-        ckpt_path='.'
+        datamodule=dm,
         )
 
-    trainer.test(Wrapped_Model, test_dl)
+    trainer.test(Wrapped_Model, datamodule=dm)
 
 
 if __name__ == '__main__':
