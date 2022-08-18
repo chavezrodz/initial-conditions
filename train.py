@@ -31,6 +31,9 @@ def main(args):
             project="IC",
             save_dir=os.path.join(args.results_dir, "wandb")
             )
+    logger.log_hyperparams(
+            args
+            )
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(args.results_dir, 'saved_models'),
@@ -105,7 +108,7 @@ if __name__ == '__main__':
                         choices=['MLP', 'UNET'])
 
     parser.add_argument("--batch_size", default=16, type=int)
-    parser.add_argument("--cached", default=False, type=bool)
+    parser.add_argument("--cached", default=True, type=bool)
     parser.add_argument("--max_samples", default=64, type=int,
                         help='-1 for all')
 
