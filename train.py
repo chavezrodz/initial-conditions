@@ -5,12 +5,12 @@ from pytorch_lightning import utilities
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 import wandb
-from Model import Model
+from MLP import MLP
 from UNET import UNET
 from Wrapper import Wrapper
 from utils import make_file_prefix 
 from memory_profiler import profile
-from dataloaders import DataModule
+from Datamodule import DataModule
 
 
 # @profile

@@ -4,8 +4,8 @@ import pandas as pd
 import torch
 import os
 import matplotlib.pyplot as plt
-from dataloaders  import get_iterators
-from Model import Model
+from Datamodule  import DataModule
+from MLP import Model
 from UNET import UNET
 from Wrapper import Wrapper
 from pytorch_lightning import Trainer

@@ -13,7 +13,7 @@ class conv_layer(nn.Module):
         x = self.relu(x)
         return x
 
-class Model(nn.Module):
+class MLP(nn.Module):
     def __init__(
         self,
         input_dim,
