@@ -1,6 +1,7 @@
 .venv
 wandb
 data
+fakedata
 **/__pycache__
 Results
 **.pyc

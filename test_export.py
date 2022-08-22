@@ -11,33 +11,30 @@ from Wrapper import Wrapper
 from pytorch_lightning import Trainer
 from utils import three_to_two, make_file_prefix
 
-def load_model(args, norms):
-    results_dir = args.results_dir
-
+def load_model(args, dm):
     model_file = make_file_prefix(args)+f'_val_err_{args.pc_err}.ckpt'
     model_path = os.path.join(
-        results_dir, "saved_models", model_file
+        args.results_dir, "saved_models", model_file
         )
 
-    input_dim, output_dim = 32, 16
     if args.model == 'MLP': 
         model = MLP(
-            input_dim=input_dim,
+            input_dim=dm.input_dim,
             hidden_dim=args.hidden_dim,
             n_layers=args.n_layers,
-            output_dim=output_dim,
+            output_dim=dm.output_dim,
             )
     elif args.model == 'UNET':
         model = UNET(
-            input_dim=input_dim,
+            input_dim=dm.input_dim,
             hidden_dim=args.hidden_dim,
             n_layers=args.n_layers,
-            output_dim=output_dim,
+            output_dim=dm.output_dim,
             )
 
     wrapped_model = Wrapper.load_from_checkpoint(
         core_model=model,
-        norms=norms,
+        norms=dm.norms,
         criterion=args.criterion,
         lr=args.lr,
         amsgrad=args.amsgrad,
@@ -72,12 +69,15 @@ def visualize_target_output(pred, y):
 
 
 def main(args):
-    results_dir = args.results_dir
+    trainer = Trainer(
+        logger=False,
+        accelerator='auto',
+        devices='auto'
+        )
 
     dm = DataModule(args)
     dm.setup()
-    model = load_model(args, dm.norms)
-    trainer = Trainer(logger=False)
+    model = load_model(args, dm)
     trainer.test(model=model, datamodule=dm)
 
     if args.visualize or args.predict:
@@ -124,7 +124,7 @@ def main(args):
         #     break
 
         compiled_path = os.path.join(
-            results_dir,
+            args.results_dir,
             "compiled_models",
             args.proj_dir,
             )
@@ -139,7 +139,7 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     # Managing params
-    parser.add_argument("--predict", default=True, type=bool)
+    parser.add_argument("--predict", default=False, type=bool)
     parser.add_argument("--visualize", default=False, type=bool)
     parser.add_argument("--export", default=False, type=bool)
 
