@@ -5,7 +5,7 @@ import torch
 import os
 import matplotlib.pyplot as plt
 from Datamodule  import DataModule
-from MLP import Model
+from MLP import MLP
 from UNET import UNET
 from Wrapper import Wrapper
 from pytorch_lightning import Trainer
@@ -21,7 +21,7 @@ def load_model(args, norms):
 
     input_dim, output_dim = 32, 16
     if args.model == 'MLP': 
-        model = Model(
+        model = MLP(
             input_dim=input_dim,
             hidden_dim=args.hidden_dim,
             n_layers=args.n_layers,
@@ -74,16 +74,14 @@ def visualize_target_output(pred, y):
 def main(args):
     results_dir = args.results_dir
 
-    (train, val, test_dl), norms = get_iterators(
-        datapath=args.datapath,
-        cached=args.cached,
-        batch_size=args.batch_size,
-        n_workers=8
-        )
-
-    model = load_model(args, norms)
+    dm = DataModule(args)
+    dm.setup()
+    model = load_model(args, dm.norms)
     trainer = Trainer(logger=False)
-    predictions = trainer.predict(model, test_dl)
+    trainer.test(model=model, datamodule=dm)
+
+    if args.visualize or args.predict:
+        predictions = trainer.predict(model, datamodule=dm)
 
     if args.visualize:
         for batch in predictions:
@@ -93,8 +91,7 @@ def main(args):
 
         pass
 
-    if args.include_test:
-
+    if args.predict:
         outfolder = os.path.join('Results', 'Predictions', args.res, args.energy)
         os.makedirs(outfolder, exist_ok=True)
         
@@ -142,10 +139,12 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     # Managing params
-    parser.add_argument("--include_test", default=False, type=bool)
-    parser.add_argument("--visualize", default=True, type=bool)
+    parser.add_argument("--predict", default=True, type=bool)
+    parser.add_argument("--visualize", default=False, type=bool)
     parser.add_argument("--export", default=False, type=bool)
 
+
+    parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument("--results_dir", default='Results', type=str)
     parser.add_argument("--datapath", default='data', type=str)
 

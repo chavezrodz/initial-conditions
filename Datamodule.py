@@ -97,16 +97,16 @@ class DataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         arrays_path = os.path.join(self.checkpt_path, self.energy, 'arrays')
-        dataset = IPGDataset(arrays_path, cached=self.cached)
+        self.dataset = IPGDataset(arrays_path, cached=self.cached)
 
-        total_len = len(dataset)
+        total_len = len(self.dataset)
         test_size = int(self.test_split * total_len)
         train_size = total_len - test_size
         val_size = int(self.val_split*train_size)
         train_size = train_size - val_size
 
         self.train_ds, self.val_ds, self.test_ds = random_split(
-            dataset, [train_size, val_size, test_size]
+            self.dataset, [train_size, val_size, test_size]
             )
         self.norms = get_norms(self.train_ds)
 
@@ -118,3 +118,7 @@ class DataModule(pl.LightningDataModule):
 
     def test_dataloader(self):
         return DataLoader(self.test_ds, batch_size=self.batch_size, num_workers=self.num_workers)
+
+    def predict_dataloader(self):
+        return DataLoader(self.dataset, batch_size=self.batch_size, num_workers=self.num_workers)
+    

@@ -1,16 +1,16 @@
 import os
+import wandb
 from argparse import ArgumentParser
 from pytorch_lightning import Trainer
 from pytorch_lightning import utilities
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
-import wandb
 from MLP import MLP
 from UNET import UNET
 from Wrapper import Wrapper
+from Datamodule import DataModule
 from utils import make_file_prefix 
 from memory_profiler import profile
-from Datamodule import DataModule
 
 
 # @profile
@@ -59,7 +59,7 @@ def main(args):
     dm.setup()
 
     if args.model == 'MLP': 
-        model = Model(
+        model = MLP(
             input_dim=dm.input_dim,
             hidden_dim=args.hidden_dim,
             n_layers=args.n_layers,
@@ -95,7 +95,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--n_layers", default=4, type=int)
     parser.add_argument("--hidden_dim", default=16, type=int)
-    parser.add_argument("--model", default='UNET', type=str,
+    parser.add_argument("--model", default='MLP', type=str,
                         choices=['MLP', 'UNET'])
 
     # data params
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
-    parser.add_argument("--fast_dev_run", default=False, type=bool)
+    parser.add_argument("--fast_dev_run", default=True, type=bool)
     args = parser.parse_args()
 
     main(args)
