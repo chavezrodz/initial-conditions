@@ -5,46 +5,10 @@ import torch
 import os
 import matplotlib.pyplot as plt
 from Datamodule  import DataModule
-from MLP import MLP
-from UNET import UNET
-from Wrapper import Wrapper
 from pytorch_lightning import Trainer
-from utils import three_to_two, make_file_prefix
+from utils import three_to_two, make_file_prefix, load_model
 
-def load_model(args, norms):
-    results_dir = args.results_dir
 
-    model_file = make_file_prefix(args)+f'_val_err_{args.pc_err}.ckpt'
-    model_path = os.path.join(
-        results_dir, "saved_models", model_file
-        )
-
-    input_dim, output_dim = 32, 16
-    if args.model == 'MLP': 
-        model = MLP(
-            input_dim=input_dim,
-            hidden_dim=args.hidden_dim,
-            n_layers=args.n_layers,
-            output_dim=output_dim,
-            )
-    elif args.model == 'UNET':
-        model = UNET(
-            input_dim=input_dim,
-            hidden_dim=args.hidden_dim,
-            n_layers=args.n_layers,
-            output_dim=output_dim,
-            )
-
-    wrapped_model = Wrapper.load_from_checkpoint(
-        core_model=model,
-        norms=norms,
-        criterion=args.criterion,
-        lr=args.lr,
-        amsgrad=args.amsgrad,
-        checkpoint_path=model_path,
-        )
-
-    return wrapped_model
 
 def visualize_target_output(pred, y):
     pred, y = pred.mean(dim=0), y.mean(dim=0)
@@ -72,12 +36,15 @@ def visualize_target_output(pred, y):
 
 
 def main(args):
-    results_dir = args.results_dir
+    trainer = Trainer(
+        logger=False,
+        accelerator='auto',
+        devices='auto'
+        )
 
     dm = DataModule(args)
     dm.setup()
-    model = load_model(args, dm.norms)
-    trainer = Trainer(logger=False)
+    model = load_model(args, dm)
     trainer.test(model=model, datamodule=dm)
 
     if args.visualize or args.predict:
@@ -124,7 +91,7 @@ def main(args):
         #     break
 
         compiled_path = os.path.join(
-            results_dir,
+            args.results_dir,
             "compiled_models",
             args.proj_dir,
             )
@@ -139,7 +106,7 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     # Managing params
-    parser.add_argument("--predict", default=True, type=bool)
+    parser.add_argument("--predict", default=False, type=bool)
     parser.add_argument("--visualize", default=False, type=bool)
     parser.add_argument("--export", default=False, type=bool)
 
@@ -149,8 +116,8 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
 
     # data params
-    parser.add_argument("--res", default='128x128', type=str)
-    parser.add_argument("--energy", default='5020', type=str)
+    parser.add_argument("--res", default='512x512', type=str)
+    parser.add_argument("--energy", default='all', type=str)
 
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--cached", default=True, type=bool)
@@ -163,9 +130,10 @@ if __name__ == '__main__':
 
     # Model Params
     parser.add_argument("--model", default='UNET', type=str)
-    parser.add_argument("--hidden_dim", default=32, type=int)
     parser.add_argument("--n_layers", default=4, type=int)
-    parser.add_argument("--pc_err", default='2.49e-01', type=str)
+    parser.add_argument("--hidden_dim", default=16, type=int)
+    parser.add_argument("--kernel_size", default=5, type=int)
+    parser.add_argument("--pc_err", default='1.0e+00', type=str)
 
     # Rate Integrating
     args = parser.parse_args()

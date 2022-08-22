@@ -34,17 +34,32 @@ def get_norms(dataset):
 
 
 class IPGDataset(Dataset):
-    def __init__(self, arrays_path, cached=True):
-        self.arrays_path = arrays_path
+    def __init__(self, processed_path, cached=True, energy='all', res='512x512'):
+        self.data_path = processed_path
         self.cached = cached
+        self.energy = energy
+        self.res = res
+        energies = ['193', '2760', '5020']
 
-        self.filelist = os.listdir(arrays_path)
+        if energy in energies:
+            e_path = os.path.join(processed_path, res, energy)
+            files = os.listdir(e_path)
+            self.filelist = [os.path.join(e_path, file) for file in files]
+
+        elif energy == 'all':
+            self.filelist = list()
+            for e in energies:
+                e_path = os.path.join(processed_path, res, e)
+                files = os.listdir(e_path)
+                e_list = [os.path.join(e_path, file) for file in files]
+                self.filelist = self.filelist + e_list
+
         self.n_samples = len(self.filelist)
         if self.cached:
             self.ABC_fn = list()
             for file in self.filelist:
-                file_nb = file[:-4]
-                ABC = np.load(os.path.join(self.arrays_path, file))
+                file_nb = os.path.split(file)[1][:-4]
+                ABC = np.load(file)
                 self.ABC_fn.append((ABC, file_nb))
 
     def __len__(self):
@@ -55,8 +70,8 @@ class IPGDataset(Dataset):
             ABC_fn = self.ABC_fn[idx]
         else:
             file = self.filelist[idx]
-            file_nb = file[:-4]
-            ABC = np.load(os.path.join(self.arrays_path, file))
+            file_nb = os.path.split(file)[1][:-4]
+            ABC = np.load(file)
             ABC_fn = (ABC, file_nb)
         return ABC_fn
     
@@ -72,32 +87,30 @@ class DataModule(pl.LightningDataModule):
 
         self.input_dim, self.output_dim = 32, 16
         self.energy = args.energy
-
-
-        self.data_dir = os.path.join(args.datapath, args.res)
+        self.res = args.res
+        self.datapath = args.datapath
         self.checkpt_path = os.path.join(args.datapath, 'processed')
-        self.energies = os.listdir(self.data_dir)
 
     def prepare_data(self):
-        if not os.path.exists(self.checkpt_path):
-            print("Making Preprocess Checkpoint")
-            for energy in self.energies:
+        for energy in ['193', '2760', '5020']:
+            checkpt_e = os.path.join(self.datapath, 'processed', self.res, energy)
+            if not os.path.exists(checkpt_e):
+                os.makedirs(checkpt_e, exist_ok=True)
                 print(f'processing energy {energy}')
-                energy_src = os.path.join(self.data_dir, energy)
-                energy_chpt = os.path.join(self.checkpt_path, energy)
-                os.makedirs(os.path.join(energy_chpt, 'arrays'), exist_ok=True)
+                energy_src = os.path.join(self.datapath, self.res, energy)
+                energy_chpt = os.path.join(self.checkpt_path, self.res, energy)
+                os.makedirs(os.path.join(energy_chpt), exist_ok=True)
                 for file in os.listdir(energy_src):
                     print(f'\t {energy} {file}')
                     filename = os.path.join(energy_src, file)
-                    outfile = os.path.join(energy_chpt, 'arrays', file[:-4]+'.npy')
+                    outfile = os.path.join(energy_chpt, file[:-4]+'.npy')
                     save_checkpt(filename, outfile)
-        else:
-            print("Using Checkpoint")
+            else:
+                print("Using Checkpoint")
 
 
     def setup(self, stage=None):
-        arrays_path = os.path.join(self.checkpt_path, self.energy, 'arrays')
-        self.dataset = IPGDataset(arrays_path, cached=self.cached)
+        self.dataset = IPGDataset(self.checkpt_path, cached=self.cached, energy=self.energy)
 
         total_len = len(self.dataset)
         test_size = int(self.test_split * total_len)

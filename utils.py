@@ -1,4 +1,8 @@
 import numpy as np
+from MLP import MLP
+from UNET import UNET
+from Wrapper import Wrapper
+import os
 
 def value_to_idx(x):
     unique_values = np.sort(np.unique(x))
@@ -51,22 +55,47 @@ def three_to_two(array, x_values):
 
 def make_file_prefix(args):
     file_prefix = 'M_' + str(args.model)
-    file_prefix += '_n_layers_' + str(args.n_layers)
-    file_prefix += '_hid_dim_' + str(args.hidden_dim)
+    file_prefix += '_nl_' + str(args.n_layers)
+    file_prefix += '_hdim_' + str(args.hidden_dim)
+    file_prefix += '_ksize_' + str(args.kernel_size)
     return file_prefix
 
+def load_model(args, dm, saved=False):
+    if args.model == 'MLP': 
+        model = MLP(
+            input_dim=dm.input_dim,
+            output_dim=dm.output_dim,
+            hidden_dim=args.hidden_dim,
+            n_layers=args.n_layers,
+            kernel_size=args.kernel_size
+            )
+    elif args.model == 'UNET':
+        model = UNET(
+            input_dim=dm.input_dim,
+            output_dim=dm.output_dim,
+            hidden_dim=args.hidden_dim,
+            n_layers=args.n_layers,
+            kernel_size=args.kernel_size
+            )
 
-
-
-
-# source = np.loadtxt('data/128x128/5020/100.dat')
-# x_values = np.sort(np.unique(source[:, 0]))
-
-# changed = two_to_three(source)
-
-# final = three_to_two(changed, x_values)
-
-# print(source)
-# print(final)
-# # print((source == final).astype(int))
-# print(f'Agreement: {(source == final).astype(int).mean()}')
+    if not saved:
+        return Wrapper(
+            model,
+            dm.norms,
+            criterion=args.criterion,
+            lr=args.lr,
+            amsgrad=args.amsgrad
+            )
+    else:
+        model_file = make_file_prefix(args)+f'_val_err_{args.pc_err}.ckpt'
+        model_path = os.path.join(
+            args.results_dir, "saved_models", model_file
+            )
+        return Wrapper.load_from_checkpoint(
+            core_model=model,
+            norms=dm.norms,
+            criterion=args.criterion,
+            lr=args.lr,
+            amsgrad=args.amsgrad,
+            checkpoint_path=model_path,
+            )

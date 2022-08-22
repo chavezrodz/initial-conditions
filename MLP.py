@@ -17,25 +17,27 @@ class MLP(nn.Module):
     def __init__(
         self,
         input_dim,
-        hidden_dim,
         output_dim,
+        hidden_dim,
         n_layers,
+        kernel_size
         ):
         super().__init__()
         self.input_dim = input_dim
         self.hid_dim = hidden_dim
         self.n_layers = n_layers
         self.output_dim = output_dim
+        pad = (kernel_size - 1) // 2
 
         self.conv_layers = nn.ModuleList([
-            nn.Conv2d(input_dim, hidden_dim, kernel_size=3, padding=1)
+            nn.Conv2d(input_dim, hidden_dim, kernel_size=kernel_size, padding=pad)
             ])
         self.conv_layers.append(nn.BatchNorm2d(hidden_dim))
         self.conv_layers.append(nn.ReLU())
         for i in range(n_layers):
             self.conv_layers.append(conv_layer(hidden_dim, hidden_dim))
         self.conv_layers.append(
-            nn.Conv2d(hidden_dim, output_dim, kernel_size=3, padding=1)
+            nn.Conv2d(hidden_dim, output_dim, kernel_size=kernel_size, padding=pad)
             )
         
     def forward(self, x):
