@@ -59,7 +59,7 @@ def main(args):
     dm.setup()
 
     if args.model == 'MLP': 
-        model = Model(
+        model = MLP(
             input_dim=dm.input_dim,
             hidden_dim=args.hidden_dim,
             n_layers=args.n_layers,
@@ -99,7 +99,7 @@ if __name__ == '__main__':
                         choices=['MLP', 'UNET'])
 
     # data params
-    parser.add_argument("--res", default='128x128', type=str)
+    parser.add_argument("--res", default='512x512', type=str)
     parser.add_argument("--energy", default='5020', type=str)
 
     parser.add_argument("--batch_size", default=16, type=int)
