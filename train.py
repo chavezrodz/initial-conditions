@@ -60,16 +60,18 @@ def main(args):
     if args.model == 'MLP': 
         model = MLP(
             input_dim=dm.input_dim,
+            output_dim=dm.output_dim,
             hidden_dim=args.hidden_dim,
             n_layers=args.n_layers,
-            output_dim=dm.output_dim,
+            kernel_size=args.kernel_size
             )
     elif args.model == 'UNET':
         model = UNET(
             input_dim=dm.input_dim,
+            output_dim=dm.output_dim,
             hidden_dim=args.hidden_dim,
             n_layers=args.n_layers,
-            output_dim=dm.output_dim,
+            kernel_size=args.kernel_size
             )
 
 
@@ -94,12 +96,14 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--n_layers", default=4, type=int)
     parser.add_argument("--hidden_dim", default=16, type=int)
-    parser.add_argument("--model", default='MLP', type=str,
+    parser.add_argument("--kernel_size", default=5, type=int)
+    parser.add_argument("--model", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
 
     # data params
     parser.add_argument("--res", default='512x512', type=str, choices=['128x128', '512x512'])
-    parser.add_argument("--energy", default='all', type=str, choices=['193', '2760', '5020', 'all'])
+    parser.add_argument("--energy", default='all', type=str,
+                        choices=['193', '2760', '5020', 'all'])
 
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--cached", default=True, type=bool)
@@ -113,10 +117,10 @@ if __name__ == '__main__':
 
     parser.add_argument("--logger", default='tb', type=str, choices=['wandb', 'tb'])
     parser.add_argument("--results_dir", default='Results', type=str)
-    parser.add_argument("--datapath", default='fakedata', type=str)
+    parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
-    parser.add_argument("--fast_dev_run", default=True, type=bool)
+    parser.add_argument("--fast_dev_run", default=False, type=bool)
     args = parser.parse_args()
 
     main(args)

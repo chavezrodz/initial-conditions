@@ -55,7 +55,6 @@ class IPGDataset(Dataset):
                 self.filelist = self.filelist + e_list
 
         self.n_samples = len(self.filelist)
-        print(self.n_samples)
         if self.cached:
             self.ABC_fn = list()
             for file in self.filelist:
