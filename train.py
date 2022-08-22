@@ -5,11 +5,8 @@ from pytorch_lightning import Trainer
 from pytorch_lightning import utilities
 from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
-from MLP import MLP
-from UNET import UNET
-from Wrapper import Wrapper
 from Datamodule import DataModule
-from utils import make_file_prefix 
+from utils import make_file_prefix, load_model
 from memory_profiler import profile
 
 
@@ -57,39 +54,14 @@ def main(args):
     dm = DataModule(args)
     dm.setup()
 
-    if args.model == 'MLP': 
-        model = MLP(
-            input_dim=dm.input_dim,
-            output_dim=dm.output_dim,
-            hidden_dim=args.hidden_dim,
-            n_layers=args.n_layers,
-            kernel_size=args.kernel_size
-            )
-    elif args.model == 'UNET':
-        model = UNET(
-            input_dim=dm.input_dim,
-            output_dim=dm.output_dim,
-            hidden_dim=args.hidden_dim,
-            n_layers=args.n_layers,
-            kernel_size=args.kernel_size
-            )
-
-
-    Wrapped_Model = Wrapper(
-        model,
-        dm.norms,
-        criterion=args.criterion,
-        lr=args.lr,
-        amsgrad=args.amsgrad
-        )
-
+    model = load_model(args, dm)
 
     trainer.fit(
-        Wrapped_Model,
+        model,
         datamodule=dm,
         )
 
-    trainer.test(Wrapped_Model, datamodule=dm)
+    trainer.test(model, datamodule=dm)
 
 
 if __name__ == '__main__':
