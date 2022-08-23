@@ -10,14 +10,11 @@ from utils import make_file_prefix, load_model
 from memory_profiler import profile
 
 
-# @profile
+@profile
 def main(args):
-    # utilities.seed.seed_everything(seed=args.seed, workers=True)
+    utilities.seed.seed_everything(seed=args.seed, workers=True)
     dm = DataModule(args)
-    dm.prepare_data()
-    dm.setup()
-    exit()
-
+    dm.setup(stage="init")
     if args.logger == 'tb':
         logger = TensorBoardLogger(
             save_dir=os.path.join(args.results_dir, "TB_logs"),
@@ -74,12 +71,12 @@ if __name__ == '__main__':
                         choices=['MLP', 'UNET'])
 
     # data params
-    parser.add_argument("--res", default='512x512', type=str, choices=['128x128', '512x512'])
+    parser.add_argument("--res", default='128x128', type=str, choices=['128x128', '512x512'])
     parser.add_argument("--energy", default='all', type=str,
                         choices=['193', '2760', '5020', 'all'])
 
-    parser.add_argument("--batch_size", default=16, type=int)
-    parser.add_argument("--cached", default=True, type=bool)
+    parser.add_argument("--batch_size", default=8, type=int)
+    parser.add_argument("--cached", default=False, type=bool)
 
     parser.add_argument("--epochs", default=25, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
@@ -90,7 +87,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--logger", default='tb', type=str, choices=['wandb', 'tb'])
     parser.add_argument("--results_dir", default='Results', type=str)
-    parser.add_argument("--datapath", default='fakedata', type=str)
+    parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument("--fast_dev_run", default=True, type=bool)

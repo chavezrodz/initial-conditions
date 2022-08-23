@@ -36,7 +36,7 @@ def get_norms(dataset):
 
 class IPGDataset(Dataset):
     def __init__(
-        self, processed_path, cached=True, energy='all', res='512x512'
+        self, processed_path, cached=True, energy='all', res='512x512', max_samples=200
         ):
         self.data_path = processed_path
         self.cached = cached
@@ -47,14 +47,14 @@ class IPGDataset(Dataset):
         if energy in energies:
             e_path = os.path.join(processed_path, res, energy)
             files = os.listdir(e_path)
-            self.filelist = [os.path.join(e_path, file) for file in files]
+            self.filelist = [os.path.join(e_path, file) for file in files][:max_samples]
 
         elif energy == 'all':
             self.filelist = list()
             for e in energies:
                 e_path = os.path.join(processed_path, res, e)
                 files = os.listdir(e_path)
-                e_list = [os.path.join(e_path, file) for file in files]
+                e_list = [os.path.join(e_path, file) for file in files][:max_samples]
                 self.filelist = self.filelist + e_list
 
         self.n_samples = len(self.filelist)
@@ -110,18 +110,28 @@ class DataModule(pl.LightningDataModule):
 
 
     def setup(self, stage=None):
-        self.dataset = IPGDataset(self.checkpt_path, cached=self.cached, energy=self.energy)
+        dataset = IPGDataset(self.checkpt_path, cached=self.cached, energy=self.energy)
 
-        total_len = len(self.dataset)
+        total_len = len(dataset)
         test_size = int(self.test_split * total_len)
         train_size = total_len - test_size
         val_size = int(self.val_split*train_size)
         train_size = train_size - val_size
 
-        self.train_ds, self.val_ds, self.test_ds = random_split(
-            self.dataset, [train_size, val_size, test_size]
+        train_ds, val_ds, test_ds = random_split(
+            dataset, [train_size, val_size, test_size]
             )
-        self.norms = get_norms(self.train_ds)
+        if stage in (None, "fit"):
+            self.train_ds, self.val_ds = train_ds, val_ds
+
+        if stage in (None, "test"):
+            self.test_ds = test_ds
+        
+        if stage in (None, "predict"):
+            self.dataset = dataset
+       
+        if stage == "init":
+            self.norms = get_norms(train_ds)
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size, num_workers=self.num_workers)
