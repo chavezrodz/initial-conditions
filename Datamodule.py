@@ -36,7 +36,7 @@ def get_norms(dataset):
 
 class IPGDataset(Dataset):
     def __init__(
-        self, processed_path, cached=True, energy='all', res='512x512', max_samples=200
+        self, processed_path, cached=True, energy='all', res='512x512', max_samples=-1
         ):
         self.data_path = processed_path
         self.cached = cached
@@ -83,6 +83,7 @@ class DataModule(pl.LightningDataModule):
     def __init__(self, args):
         super().__init__()
         self.cached = args.cached
+        self.samples = args.max_samples
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
         self.test_split=0.1
@@ -110,7 +111,7 @@ class DataModule(pl.LightningDataModule):
 
 
     def setup(self, stage=None):
-        dataset = IPGDataset(self.checkpt_path, cached=self.cached, energy=self.energy)
+        dataset = IPGDataset(self.checkpt_path, cached=self.cached, energy=self.energy, max_samples=self.max_samples)
 
         total_len = len(dataset)
         test_size = int(self.test_split * total_len)

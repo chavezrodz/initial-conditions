@@ -15,22 +15,24 @@ def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
     dm = DataModule(args)
     dm.setup(stage="init")
-    if args.logger == 'tb':
-        logger = TensorBoardLogger(
-            save_dir=os.path.join(args.results_dir, "TB_logs"),
-            name=make_file_prefix(args),
-            default_hp_metric=True
-            )
-    elif args.logger == 'wandb':
-        wandb.init()
-        wandb.config.update(args)
-        logger = WandbLogger(
-            project="IC",
-            save_dir=os.path.join(args.results_dir, "wandb")
-            )
-    logger.log_hyperparams(
-            args
-            )
+
+    wandb.init()
+    wandb.config.update(args)
+    wb_logger = WandbLogger(
+        project="IC",
+        save_dir=os.path.join(args.results_dir, "wb_logs"),
+        offline=True
+        )
+    tb_logger = TensorBoardLogger(
+        save_dir=os.path.join(args.results_dir, "tb_logs"),
+        name=make_file_prefix(args),
+        default_hp_metric=True
+        )
+    loggers = [tb_logger, wb_logger]
+    for logger in loggers:
+        logger.log_hyperparams(
+                args
+                )
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(args.results_dir, 'saved_models'),
@@ -43,7 +45,7 @@ def main(args):
         )
 
     trainer = Trainer(
-        logger=logger,
+        logger=loggers,
         accelerator='auto',
         devices='auto',
         max_epochs=args.epochs,
@@ -71,11 +73,12 @@ if __name__ == '__main__':
                         choices=['MLP', 'UNET'])
 
     # data params
+    parser.add_argument("--max_samples", default=-1, type=int)
     parser.add_argument("--res", default='128x128', type=str, choices=['128x128', '512x512'])
     parser.add_argument("--energy", default='all', type=str,
                         choices=['193', '2760', '5020', 'all'])
 
-    parser.add_argument("--batch_size", default=8, type=int)
+    parser.add_argument("--batch_size", default=32, type=int)
     parser.add_argument("--cached", default=False, type=bool)
 
     parser.add_argument("--epochs", default=25, type=int)
@@ -85,12 +88,11 @@ if __name__ == '__main__':
                         choices=['sum_err', 'abs_err', 'sq_err'])
     parser.add_argument("--add_sum_err", default=True, type=bool)
 
-    parser.add_argument("--logger", default='tb', type=str, choices=['wandb', 'tb'])
     parser.add_argument("--results_dir", default='Results', type=str)
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
-    parser.add_argument("--fast_dev_run", default=True, type=bool)
+    parser.add_argument("--fast_dev_run", default=False, type=bool)
     args = parser.parse_args()
 
     main(args)
