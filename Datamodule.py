@@ -99,15 +99,16 @@ class DataModule(pl.LightningDataModule):
         for energy in ['193', '2760', '5020']:
             energy_src = os.path.join(self.datapath, self.res, energy)
             energy_chpt = os.path.join(self.checkpt_path, self.res, energy)
-            os.makedirs(energy_chpt, exist_ok=True)
-            files = os.listdir(energy_src)
-            random.shuffle(files)
-            for file in files:
-                filename = os.path.join(energy_src, file)
-                outfile = os.path.join(energy_chpt, file[:-4]+'.npy')
-                if not os.path.exists(outfile):
-                    print(f'\t missing {energy} {file}')
-                    save_checkpt(filename, outfile)
+            if not os.path.exists(energy_chpt):
+                os.makedirs(energy_chpt, exist_ok=True)
+                files = os.listdir(energy_src)
+                random.shuffle(files)
+                for file in files:
+                    filename = os.path.join(energy_src, file)
+                    outfile = os.path.join(energy_chpt, file[:-4]+'.npy')
+                    if not os.path.exists(outfile):
+                        print(f'\t missing {energy} {file}')
+                        save_checkpt(filename, outfile)
 
 
     def setup(self, stage=None):
