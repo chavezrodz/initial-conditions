@@ -4,6 +4,7 @@ from torch.utils.data import DataLoader, Dataset, random_split
 from utils import two_to_three
 import pytorch_lightning as pl
 import torch
+import random
 
 def save_checkpt(filename, outfile):
     arr = np.loadtxt(filename)
@@ -34,7 +35,9 @@ def get_norms(dataset):
 
 
 class IPGDataset(Dataset):
-    def __init__(self, processed_path, cached=True, energy='all', res='512x512'):
+    def __init__(
+        self, processed_path, cached=True, energy='all', res='512x512'
+        ):
         self.data_path = processed_path
         self.cached = cached
         self.energy = energy
@@ -93,20 +96,17 @@ class DataModule(pl.LightningDataModule):
 
     def prepare_data(self):
         for energy in ['193', '2760', '5020']:
-            checkpt_e = os.path.join(self.datapath, 'processed', self.res, energy)
-            if not os.path.exists(checkpt_e):
-                os.makedirs(checkpt_e, exist_ok=True)
-                print(f'processing energy {energy}')
-                energy_src = os.path.join(self.datapath, self.res, energy)
-                energy_chpt = os.path.join(self.checkpt_path, self.res, energy)
-                os.makedirs(os.path.join(energy_chpt), exist_ok=True)
-                for file in os.listdir(energy_src):
-                    print(f'\t {energy} {file}')
-                    filename = os.path.join(energy_src, file)
-                    outfile = os.path.join(energy_chpt, file[:-4]+'.npy')
+            energy_src = os.path.join(self.datapath, self.res, energy)
+            energy_chpt = os.path.join(self.checkpt_path, self.res, energy)
+            os.makedirs(energy_chpt, exist_ok=True)
+            files = os.listdir(energy_src)
+            random.shuffle(files)
+            for file in files:
+                filename = os.path.join(energy_src, file)
+                outfile = os.path.join(energy_chpt, file[:-4]+'.npy')
+                if not os.path.exists(outfile):
+                    print(f'\t missing {energy} {file}')
                     save_checkpt(filename, outfile)
-            else:
-                print("Using Checkpoint")
 
 
     def setup(self, stage=None):

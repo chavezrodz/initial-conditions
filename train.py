@@ -12,7 +12,7 @@ from memory_profiler import profile
 
 # @profile
 def main(args):
-    utilities.seed.seed_everything(seed=args.seed, workers=True)
+    # utilities.seed.seed_everything(seed=args.seed, workers=True)
 
     if args.logger == 'tb':
         logger = TensorBoardLogger(
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
-    parser.add_argument("--fast_dev_run", default=False, type=bool)
+    parser.add_argument("--fast_dev_run", default=True, type=bool)
     args = parser.parse_args()
 
     main(args)
