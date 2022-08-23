@@ -10,7 +10,7 @@ from utils import make_file_prefix, load_model
 from memory_profiler import profile
 
 
-# @profile
+@profile
 def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
     dm = DataModule(args)
@@ -79,6 +79,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", default=32, type=int)
     parser.add_argument("--cached", default=False, type=bool)
 
+    parser.add_argument("--data_pc_norms", default=0.25, type=float)
     parser.add_argument("--epochs", default=25, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
