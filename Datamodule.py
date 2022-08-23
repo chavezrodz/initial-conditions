@@ -83,7 +83,7 @@ class DataModule(pl.LightningDataModule):
     def __init__(self, args):
         super().__init__()
         self.cached = args.cached
-        self.samples = args.max_samples
+        self.max_samples = args.max_samples
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
         self.test_split=0.1
