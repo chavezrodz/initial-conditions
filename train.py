@@ -13,6 +13,10 @@ from memory_profiler import profile
 # @profile
 def main(args):
     # utilities.seed.seed_everything(seed=args.seed, workers=True)
+    dm = DataModule(args)
+    dm.prepare_data()
+    dm.setup()
+    exit()
 
     if args.logger == 'tb':
         logger = TensorBoardLogger(
@@ -51,9 +55,6 @@ def main(args):
         callbacks=[checkpoint_callback],
         )
 
-    dm = DataModule(args)
-    dm.setup()
-
     model = load_model(args, dm)
 
     trainer.fit(
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--logger", default='tb', type=str, choices=['wandb', 'tb'])
     parser.add_argument("--results_dir", default='Results', type=str)
-    parser.add_argument("--datapath", default='data', type=str)
+    parser.add_argument("--datapath", default='fakedata', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument("--fast_dev_run", default=True, type=bool)
