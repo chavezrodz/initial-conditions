@@ -14,20 +14,19 @@ def save_checkpt(filename, outfile):
     pass
 
 
-def get_norms(dataset):
+def get_norms(dataset, data_pc):
     arrays = list()
-    for idx in range(len(dataset)):
+    for idx in range(int(data_pc*len(dataset))):
         arr = dataset.__getitem__(idx)[0]
         arrays.append(torch.tensor(arr))
     arrays = torch.stack(arrays)
     aa, bb, cc = arrays[:, :16], arrays[:, 16:32], arrays[:, 32:48]
 
-    arrays_in = torch.cat([aa, bb], dim=0)
+    arrays = torch.cat([aa, bb], dim=0)
     norms_in = torch.zeros((2, 16))
-    norms_in[0] = arrays_in.mean(dim=(0, 2, 3))
-    norms_in[1] = arrays_in.std(dim=(0, 2, 3))
+    norms_in[0] = arrays.mean(dim=(0, 2, 3))
+    norms_in[1] = arrays.std(dim=(0, 2, 3))
     norms_in = norms_in.repeat(1,2)
-
     norms_out = torch.zeros((2,16))
     norms_out[1] = 1
     norms = torch.cat([norms_in, norms_out], dim=1)
@@ -86,6 +85,7 @@ class DataModule(pl.LightningDataModule):
         self.max_samples = args.max_samples
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
+        self.data_pc_norms = args.data_pc_norms
         self.test_split=0.1
         self.val_split=0.1
 
@@ -132,7 +132,7 @@ class DataModule(pl.LightningDataModule):
             self.dataset = dataset
        
         if stage == "init":
-            self.norms = get_norms(train_ds)
+            self.norms = get_norms(train_ds, self.data_pc_norms)
 
     def train_dataloader(self):
         return DataLoader(self.train_ds, batch_size=self.batch_size, num_workers=self.num_workers)
