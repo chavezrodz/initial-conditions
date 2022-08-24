@@ -71,15 +71,15 @@ if __name__ == '__main__':
                         choices=['MLP', 'UNET'])
 
     # data params
-    parser.add_argument("--max_samples", default=-1, type=int)
+    parser.add_argument("--max_samples", default=200, type=int)
     parser.add_argument("--res", default='128x128', type=str, choices=['128x128', '512x512'])
-    parser.add_argument("--energy", default='all', type=str,
+    parser.add_argument("--energy", default='193', type=str,
                         choices=['193', '2760', '5020', 'all'])
 
     parser.add_argument("--batch_size", default=32, type=int)
     parser.add_argument("--cached", default=False, type=bool)
 
-    parser.add_argument("--data_pc_norms", default=0.25, type=float)
+    parser.add_argument("--data_pc_norms", default=0.15, type=float)
     parser.add_argument("--epochs", default=25, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
@@ -91,7 +91,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=8, type=int)
-    parser.add_argument("--fast_dev_run", default=False, type=bool)
+    parser.add_argument("--fast_dev_run", default=True, type=bool)
     args = parser.parse_args()
 
     main(args)
