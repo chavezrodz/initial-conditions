@@ -54,7 +54,9 @@ def three_to_two(array, x_values):
     return array
 
 def make_file_prefix(args):
-    file_prefix = 'M_' + str(args.model)
+    file_prefix = 'tr_res_' + str(args.train_res)
+    file_prefix += '_e_' + str(args.train_energy)
+    file_prefix += 'M_' + str(args.model)
     file_prefix += '_nl_' + str(args.n_layers)
     file_prefix += '_hdim_' + str(args.hidden_dim)
     file_prefix += '_ksize_' + str(args.kernel_size)

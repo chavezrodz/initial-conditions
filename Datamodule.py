@@ -15,20 +15,25 @@ def save_checkpt(filename, outfile):
 
 
 def get_norms(dataset, data_pc):
-    arrays = list()
-    for idx in range(int(data_pc*len(dataset))):
-        arr = dataset.__getitem__(idx)[0]
-        arrays.append(torch.tensor(arr))
-    arrays = torch.stack(arrays)
-    aa, bb, cc = arrays[:, :16], arrays[:, 16:32], arrays[:, 32:48]
-
-    arrays = torch.cat([aa, bb], dim=0)
-    norms_in = torch.zeros((2, 16))
-    norms_in[0] = arrays.mean(dim=(0, 2, 3))
-    norms_in[1] = arrays.std(dim=(0, 2, 3))
+    n_pts = len(dataset)
+    channels, xdim, ydim = (dataset.__getitem__(0)[0]).shape
+    channels_per_object = channels // 3
+    norms_in = torch.zeros((2, channels_per_object))
+    for channel_idx in range(channels_per_object):
+        arrays = list()
+        for idx in range(int(data_pc*n_pts)):
+            arr = dataset.__getitem__(idx)[0]
+            channel_subset = arr[[channel_idx, channel_idx + channels_per_object]]
+            arrays.append(torch.tensor(channel_subset))
+        arrays = torch.cat(arrays, dim=0)
+        norms_in[0, channel_idx] = arrays.mean().item()
+        norms_in[1, channel_idx] = arrays.std().item()
+        del arrays
+    print(norms_in)
     norms_in = norms_in.repeat(1,2)
-    norms_out = torch.zeros((2,16))
+    norms_out = torch.zeros((2,channels_per_object))
     norms_out[1] = 1
+
     norms = torch.cat([norms_in, norms_out], dim=1)
     return norms
 
@@ -79,7 +84,7 @@ class IPGDataset(Dataset):
     
 
 class DataModule(pl.LightningDataModule):
-    def __init__(self, args):
+    def __init__(self, args, stage):
         super().__init__()
         self.cached = args.cached
         self.max_samples = args.max_samples
@@ -90,8 +95,8 @@ class DataModule(pl.LightningDataModule):
         self.val_split=0.1
 
         self.input_dim, self.output_dim = 32, 16
-        self.energy = args.energy
-        self.res = args.res
+        self.energy = args.train_energy if stage == 'train' else args.test_energy
+        self.res = args.train_res if stage == 'train' else args.test_res
         self.datapath = args.datapath
         self.checkpt_path = os.path.join(args.datapath, 'processed')
 
