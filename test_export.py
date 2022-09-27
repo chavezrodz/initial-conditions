@@ -42,7 +42,7 @@ def main(args):
         devices='auto'
         )
 
-    dm = DataModule(args)
+    dm = DataModule(args, stage='test')
     dm.setup()
     model = load_model(args, dm)
     trainer.test(model=model, datamodule=dm)
@@ -116,8 +116,12 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
 
     # data params
-    parser.add_argument("--res", default='512x512', type=str)
-    parser.add_argument("--energy", default='all', type=str)
+    parser.add_argument("--train_res", default='512x512', type=str)
+    parser.add_argument("--train_energy", default='all', type=str)
+
+    parser.add_argument("--test_res", default='512x512', type=str)
+    parser.add_argument("--test_energy", default='all', type=str)
+
 
     parser.add_argument("--batch_size", default=16, type=int)
     parser.add_argument("--cached", default=True, type=bool)

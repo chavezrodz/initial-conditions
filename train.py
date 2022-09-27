@@ -10,23 +10,17 @@ from utils import make_file_prefix, load_model
 from memory_profiler import profile
 
 
-@profile
+# @profile
 def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
-    dm = DataModule(args)
+    dm = DataModule(args, stage='train')
     dm.setup(stage="init")
-
-    wb_logger = WandbLogger(
-        project="IC",
-        save_dir=os.path.join(args.results_dir),
-        offline=True
-        )
     tb_logger = TensorBoardLogger(
         save_dir=os.path.join(args.results_dir, "tb_logs"),
         name=make_file_prefix(args),
         default_hp_metric=True
         )
-    loggers = [tb_logger, wb_logger]
+    loggers = [tb_logger]#, wb_logger]
     for logger in loggers:
         logger.log_hyperparams(
                 args
@@ -72,14 +66,14 @@ if __name__ == '__main__':
 
     # data params
     parser.add_argument("--max_samples", default=200, type=int)
-    parser.add_argument("--res", default='128x128', type=str, choices=['128x128', '512x512'])
-    parser.add_argument("--energy", default='193', type=str,
+    parser.add_argument("--train_res", default='128x128', type=str, choices=['128x128', '512x512'])
+    parser.add_argument("--train_energy", default='193', type=str,
                         choices=['193', '2760', '5020', 'all'])
 
     parser.add_argument("--batch_size", default=32, type=int)
     parser.add_argument("--cached", default=False, type=bool)
 
-    parser.add_argument("--data_pc_norms", default=0.15, type=float)
+    parser.add_argument("--data_pc_norms", default=1, type=float)
     parser.add_argument("--epochs", default=25, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)

@@ -84,7 +84,7 @@ class IPGDataset(Dataset):
     
 
 class DataModule(pl.LightningDataModule):
-    def __init__(self, args):
+    def __init__(self, args, stage):
         super().__init__()
         self.cached = args.cached
         self.max_samples = args.max_samples
@@ -95,8 +95,8 @@ class DataModule(pl.LightningDataModule):
         self.val_split=0.1
 
         self.input_dim, self.output_dim = 32, 16
-        self.energy = args.energy
-        self.res = args.res
+        self.energy = args.train_energy if stage == 'train' else args.test_energy
+        self.res = args.train_res if stage == 'train' else args.test_res
         self.datapath = args.datapath
         self.checkpt_path = os.path.join(args.datapath, 'processed')
 
