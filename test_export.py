@@ -59,10 +59,10 @@ def main(args):
         pass
 
     if args.predict:
-        outfolder = os.path.join('Results', 'Predictions', args.res, args.energy)
+        outfolder = os.path.join('Results', 'Predictions', args.test_res, args.test_energy)
         os.makedirs(outfolder, exist_ok=True)
         
-        sample_file = os.path.join('data',args.res, args.energy,'0.dat')
+        sample_file = os.path.join('data',args.test_res, args.test_energy,'0.dat')
         f = open(sample_file, 'r')
         header = f.readline()
         f.close()
@@ -75,7 +75,7 @@ def main(args):
                 outfile = os.path.join(outfolder, 'pred_'+file_nb+'.dat')
 
                 source = np.loadtxt(
-                    os.path.join('data',args.res, args.energy,str(file_nb)+'.dat')
+                    os.path.join('data',args.test_res, args.test_energy,str(file_nb)+'.dat')
                     )
                 processed_target = three_to_two(target[idx].permute((1,2,0)), x_values)
                 assert np.allclose(source[:, -16:], processed_target[:, -16:])
