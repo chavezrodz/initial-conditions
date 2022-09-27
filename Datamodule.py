@@ -29,7 +29,6 @@ def get_norms(dataset, data_pc):
         norms_in[0, channel_idx] = arrays.mean().item()
         norms_in[1, channel_idx] = arrays.std().item()
         del arrays
-    print(norms_in)
     norms_in = norms_in.repeat(1,2)
     norms_out = torch.zeros((2,channels_per_object))
     norms_out[1] = 1

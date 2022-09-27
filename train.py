@@ -44,6 +44,7 @@ def main(args):
         fast_dev_run=args.fast_dev_run,
         log_every_n_steps=1,
         callbacks=[checkpoint_callback],
+        auto_lr_find=True
         )
 
     model = load_model(args, dm)
@@ -58,23 +59,23 @@ def main(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--n_layers", default=4, type=int)
+    parser.add_argument("--n_layers", default=2, type=int)
     parser.add_argument("--hidden_dim", default=16, type=int)
     parser.add_argument("--kernel_size", default=5, type=int)
     parser.add_argument("--model", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
 
     # data params
-    parser.add_argument("--max_samples", default=200, type=int)
-    parser.add_argument("--train_res", default='128x128', type=str, choices=['128x128', '512x512'])
-    parser.add_argument("--train_energy", default='193', type=str,
+    parser.add_argument("--max_samples", default=-1, type=int)
+    parser.add_argument("--train_res", default='512x512', type=str, choices=['128x128', '512x512'])
+    parser.add_argument("--train_energy", default='all', type=str,
                         choices=['193', '2760', '5020', 'all'])
 
-    parser.add_argument("--batch_size", default=32, type=int)
+    parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--cached", default=False, type=bool)
 
     parser.add_argument("--data_pc_norms", default=1, type=float)
-    parser.add_argument("--epochs", default=25, type=int)
+    parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
     parser.add_argument("--criterion", default='sq_err', type=str,
@@ -82,10 +83,10 @@ if __name__ == '__main__':
     parser.add_argument("--add_sum_err", default=True, type=bool)
 
     parser.add_argument("--results_dir", default='Results', type=str)
-    parser.add_argument("--datapath", default='data', type=str)
+    parser.add_argument("--datapath", default='fakedata', type=str)
     parser.add_argument("--seed", default=0, type=int)
-    parser.add_argument("--num_workers", default=8, type=int)
-    parser.add_argument("--fast_dev_run", default=True, type=bool)
+    parser.add_argument("--num_workers", default=1, type=int)
+    parser.add_argument("--fast_dev_run", default=False, type=bool)
     args = parser.parse_args()
 
     main(args)
