@@ -102,7 +102,7 @@ class Wrapper(LightningModule):
         metrics_scaled = self.get_metrics(pred, y)
         self.log_dict(
             {f'validation/{k}': v for k, v in metrics_scaled.items()},
-            on_epoch=True, on_step=False, batch_size=batch_size
+            on_epoch=True, on_step=False, batch_size=batch_size, sync_dist=True
             )
 
         return metrics_scaled[self.criterion]
