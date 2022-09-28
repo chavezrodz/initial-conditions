@@ -1,5 +1,5 @@
 import os
-import wandb
+# import wandb
 from argparse import ArgumentParser
 from pytorch_lightning import Trainer
 from pytorch_lightning import utilities
@@ -14,7 +14,7 @@ from memory_profiler import profile
 def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
     dm = DataModule(args, stage='train')
-    dm.setup(stage="init")
+    dm.prepare_data()
     tb_logger = TensorBoardLogger(
         save_dir=os.path.join(args.results_dir, "tb_logs"),
         name=make_file_prefix(args),
@@ -44,7 +44,8 @@ def main(args):
         fast_dev_run=args.fast_dev_run,
         log_every_n_steps=1,
         callbacks=[checkpoint_callback],
-        auto_lr_find=True
+        auto_lr_find=True,
+        strategy="ddp_find_unused_parameters_false",
         )
 
     model = load_model(args, dm)
@@ -59,7 +60,7 @@ def main(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--n_layers", default=2, type=int)
+    parser.add_argument("--n_layers", default=3, type=int)
     parser.add_argument("--hidden_dim", default=16, type=int)
     parser.add_argument("--kernel_size", default=5, type=int)
     parser.add_argument("--model", default='UNET', type=str,
@@ -74,7 +75,6 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", default=8, type=int)
     parser.add_argument("--cached", default=False, type=bool)
 
-    parser.add_argument("--data_pc_norms", default=1, type=float)
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
@@ -83,7 +83,7 @@ if __name__ == '__main__':
     parser.add_argument("--add_sum_err", default=True, type=bool)
 
     parser.add_argument("--results_dir", default='Results', type=str)
-    parser.add_argument("--datapath", default='fakedata', type=str)
+    parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=1, type=int)
     parser.add_argument("--fast_dev_run", default=False, type=bool)
