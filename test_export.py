@@ -6,8 +6,7 @@ import os
 import matplotlib.pyplot as plt
 from Datamodule  import DataModule
 from pytorch_lightning import Trainer
-from utils import three_to_two, make_file_prefix, load_model
-
+from utils import load_model
 
 
 def visualize_target_output(pred, y):
@@ -39,16 +38,16 @@ def main(args):
     trainer = Trainer(
         logger=False,
         accelerator='auto',
-        devices='auto'
+        devices='auto',
         )
 
-    dm = DataModule(args, stage='test')
-    dm.setup()
-    model = load_model(args, dm)
-    trainer.test(model=model, datamodule=dm)
+    dm_trained = DataModule(args, stage='train')
+    dm_trained.prepare_data()
+    model, model_name = load_model(args, dm_trained, saved=True)
+    del dm_trained
 
-    if args.visualize or args.predict:
-        predictions = trainer.predict(model, datamodule=dm)
+    dm_test = DataModule(args, stage='test')
+    trainer.test(model=model, datamodule=dm_test)
 
     if args.visualize:
         for batch in predictions:
@@ -59,29 +58,19 @@ def main(args):
         pass
 
     if args.predict:
-        outfolder = os.path.join('Results', 'Predictions', args.test_res, args.test_energy)
+        outfolder = os.path.join('Results', 'Predictions', model_name, args.test_res, args.test_energy)
         os.makedirs(outfolder, exist_ok=True)
+        model.outfolder = outfolder
         
         sample_file = os.path.join('data',args.test_res, args.test_energy,'0.dat')
         f = open(sample_file, 'r')
-        header = f.readline()
+        model.header = f.readline()
         f.close()
+
         data_sample = np.loadtxt(sample_file)
-        x_values = np.sort(np.unique(data_sample[:, 0]))
+        model.x_values = np.sort(np.unique(data_sample[:, 0]))
 
-        for batch in predictions:
-            pred, target, fns = batch
-            for idx, file_nb in enumerate(fns):
-                outfile = os.path.join(outfolder, 'pred_'+file_nb+'.dat')
-
-                source = np.loadtxt(
-                    os.path.join('data',args.test_res, args.test_energy,str(file_nb)+'.dat')
-                    )
-                processed_target = three_to_two(target[idx].permute((1,2,0)), x_values)
-                assert np.allclose(source[:, -16:], processed_target[:, -16:])
-
-                arr = three_to_two(pred[idx].permute((1,2,0)), x_values)
-                np.savetxt(outfile, arr, delimiter=',', header=header)
+        trainer.predict(model, datamodule=dm_test)
 
     # Exporting
     if args.export:
@@ -106,10 +95,9 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     # Managing params
-    parser.add_argument("--predict", default=False, type=bool)
+    parser.add_argument("--predict", default=True, type=bool)
     parser.add_argument("--visualize", default=False, type=bool)
     parser.add_argument("--export", default=False, type=bool)
-
 
     parser.add_argument("--num_workers", default=8, type=int)
     parser.add_argument("--results_dir", default='Results', type=str)
@@ -120,11 +108,11 @@ if __name__ == '__main__':
     parser.add_argument("--train_energy", default='all', type=str)
 
     parser.add_argument("--test_res", default='512x512', type=str)
-    parser.add_argument("--test_energy", default='all', type=str)
+    parser.add_argument("--test_energy", default='193', type=str)
 
-
-    parser.add_argument("--batch_size", default=16, type=int)
-    parser.add_argument("--cached", default=True, type=bool)
+    parser.add_argument("--max_samples", default=-1, type=int)
+    parser.add_argument("--batch_size", default=4, type=int)
+    parser.add_argument("--cached", default=False, type=bool)
 
     # training params
     parser.add_argument("--criterion", default='sq_err', type=str,
@@ -133,11 +121,11 @@ if __name__ == '__main__':
     parser.add_argument("--amsgrad", default=True, type=bool)
 
     # Model Params
-    parser.add_argument("--model", default='UNET', type=str)
+    parser.add_argument("--model", default='MLP', type=str)
     parser.add_argument("--n_layers", default=4, type=int)
-    parser.add_argument("--hidden_dim", default=16, type=int)
-    parser.add_argument("--kernel_size", default=5, type=int)
-    parser.add_argument("--pc_err", default='1.0e+00', type=str)
+    parser.add_argument("--hidden_dim", default=32, type=int)
+    parser.add_argument("--kernel_size", default=3, type=int)
+    parser.add_argument("--pc_err", default='1.80e-01', type=str)
 
     # Rate Integrating
     args = parser.parse_args()

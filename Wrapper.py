@@ -3,7 +3,27 @@ from torch import norm
 import torch.optim
 import torch.nn as nn
 from pytorch_lightning import LightningModule
+import os
 
+
+def three_to_two(array, x_values):
+    """
+    shape: (x, y, channels)
+    """
+    # Verifying shape
+    assert array.shape[1] == array.shape[0]
+
+
+    nx, ny, channels = array.shape
+    xv, yv = np.meshgrid(range(nx), range(ny))
+    coords = np.stack(( yv.flatten(), xv.flatten()), axis=1)
+
+    array = array.reshape(nx*ny, channels)
+    array = np.concatenate([coords, array], axis=1)
+
+    array[:, :2] = x_values[array[:, :2].astype(int)]
+
+    return array
 
 class Wrapper(LightningModule):  
     def __init__(self,
@@ -65,9 +85,9 @@ class Wrapper(LightningModule):
         x = torch.cat(x, dim=-3)
         return self.core_model(x)
 
-    def predict_step(self, batch, batch_idx):
+    def inference_step(self, batch, batch_idx):
         # scale everything, including targets for loss calc
-        data, file_nb = batch
+        data, fns = batch
         abc = self.scale(data)
         # combining inputs, doubling inputs for symetry ab, ba
         a, b, c = abc[:, :16], abc[:, 16:32], abc[:, 32:48]
@@ -79,13 +99,12 @@ class Wrapper(LightningModule):
         # Commented out because no need to check doubled data on test
         # file_nb = (*file_nb, *file_nb)
 
-        x, y = (a, b), c
+        x, target = (a, b), c
         pred = self.forward(x)
-
-        return pred, y, file_nb
+        return pred, target, fns
 
     def training_step(self, batch, batch_idx):
-        pred, y, _ = self.predict_step(batch, batch_idx)
+        pred, y, _ = self.inference_step(batch, batch_idx)
         batch_size = y.shape[0]
 
         metrics_scaled = self.get_metrics(pred, y)
@@ -97,7 +116,7 @@ class Wrapper(LightningModule):
         return metrics_scaled[self.criterion]
 
     def validation_step(self, batch, batch_idx):
-        pred, y, _ = self.predict_step(batch, batch_idx)
+        pred, y, _ = self.inference_step(batch, batch_idx)
         batch_size = y.shape[0]
         metrics_scaled = self.get_metrics(pred, y)
         self.log_dict(
@@ -108,7 +127,7 @@ class Wrapper(LightningModule):
         return metrics_scaled[self.criterion]
 
     def test_step(self, batch, batch_idx):
-        pred, y, _ = self.predict_step(batch, batch_idx)
+        pred, y, _ = self.inference_step(batch, batch_idx)
         batch_size = y.shape[0]
 
         metrics_scaled = self.get_metrics(pred, y)
@@ -117,3 +136,10 @@ class Wrapper(LightningModule):
             on_epoch=True, on_step=False, batch_size=batch_size
             )
         return metrics_scaled[self.criterion]
+
+    def predict_step(self, batch, batch_idx):
+        pred, target, fns = self.inference_step(batch, batch_idx)
+        for idx, file_nb in enumerate(fns):
+            outfile = os.path.join(self.outfolder, 'pred_'+file_nb+'.dat')
+            arr = three_to_two(pred[idx].permute((1,2,0)).cpu(), self.x_values)
+            np.savetxt(outfile, arr, delimiter=',', header=self.header)

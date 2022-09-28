@@ -92,50 +92,56 @@ class DataModule(pl.LightningDataModule):
         self.max_samples = args.max_samples
         self.batch_size = args.batch_size
         self.num_workers = args.num_workers
+        self.data_stage = stage
         self.test_split=0.1
         self.val_split=0.1
 
         self.input_dim, self.output_dim = 32, 16
-        self.energy = args.train_energy if stage == 'train' else args.test_energy
-        self.res = args.train_res if stage == 'train' else args.test_res
+        self.res = args.train_res if self.data_stage == 'train' else args.test_res
+        self.energy = args.train_energy if self.data_stage == 'train' else args.test_energy
         self.datapath = args.datapath
         self.checkpt_path = os.path.join(args.datapath, 'processed')
         self.norms_file = os.path.join(self.checkpt_path, 'norms', self.res +'_'+ self.energy + '.npy')
 
     def prepare_data(self):
         # convert data types to tensors & saving them under processed
-        for energy in ['193', '2760', '5020']:
-            energy_src = os.path.join(self.datapath, self.res, energy)
-            energy_chpt = os.path.join(self.checkpt_path, self.res, energy)
-            if not os.path.exists(energy_chpt):
-                os.makedirs(energy_chpt, exist_ok=True)
-                files = os.listdir(energy_src)
-                random.shuffle(files)
-                for file in files:
-                    filename = os.path.join(energy_src, file)
-                    outfile = os.path.join(energy_chpt, file[:-4]+'.npy')
-                    if not os.path.exists(outfile):
-                        print(f'\t missing {energy} {file}')
-                        save_checkpt(filename, outfile)
+        if self.data_stage == 'train':
+            for energy in ['193', '2760', '5020']:
+                energy_src = os.path.join(self.datapath, self.res, energy)
+                energy_chpt = os.path.join(self.checkpt_path, self.res, energy)
+                if not os.path.exists(energy_chpt):
+                    os.makedirs(energy_chpt, exist_ok=True)
+                    files = os.listdir(energy_src)
+                    random.shuffle(files)
+                    for file in files:
+                        filename = os.path.join(energy_src, file)
+                        outfile = os.path.join(energy_chpt, file[:-4]+'.npy')
+                        if not os.path.exists(outfile):
+                            print(f'\t missing {energy} {file}')
+                            save_checkpt(filename, outfile)
 
-        # If norms dont exist make them
-        if not os.path.exists(self.norms_file):
-            print("Norms dont exist, computing them")
-            os.makedirs(os.path.join(self.checkpt_path, 'norms'), exist_ok=True)
-            dataset = IPGDataset(self.checkpt_path, cached=self.cached, energy=self.energy, max_samples=self.max_samples)
+            # If norms dont exist make them
+            if not os.path.exists(self.norms_file):
+                print("Norms dont exist, computing them")
+                os.makedirs(os.path.join(self.checkpt_path, 'norms'), exist_ok=True)
+                dataset = IPGDataset(
+                    self.checkpt_path,
+                    cached=self.cached,
+                    energy=self.energy,
+                    max_samples=self.max_samples
+                    )
+                total_len = len(dataset)
+                test_size = int(self.test_split * total_len)
+                train_size = total_len - test_size
+                val_size = int(self.val_split*train_size)
+                train_size = train_size - val_size
 
-            total_len = len(dataset)
-            test_size = int(self.test_split * total_len)
-            train_size = total_len - test_size
-            val_size = int(self.val_split*train_size)
-            train_size = train_size - val_size
-
-            train_ds, _, _ = random_split(
-                dataset, [train_size, val_size, test_size]
-                )
-            train_dl = DataLoader(train_ds, batch_size=self.batch_size, num_workers=self.num_workers)
-            np.save(self.norms_file, get_norms(train_dl))
-        self.norms = torch.tensor(np.load(self.norms_file))
+                train_ds, _, _ = random_split(
+                    dataset, [train_size, val_size, test_size]
+                    )
+                train_dl = DataLoader(train_ds, batch_size=self.batch_size, num_workers=self.num_workers)
+                np.save(self.norms_file, get_norms(train_dl))
+            self.norms = torch.tensor(np.load(self.norms_file))
 
     def setup(self, stage=None):
         dataset = IPGDataset(self.checkpt_path, cached=self.cached, energy=self.energy, max_samples=self.max_samples)

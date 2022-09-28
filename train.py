@@ -48,7 +48,7 @@ def main(args):
         strategy="ddp_find_unused_parameters_false",
         )
 
-    model = load_model(args, dm)
+    model = load_model(args, dm, saved=False)
 
     trainer.fit(
         model,
@@ -61,7 +61,7 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     parser.add_argument("--n_layers", default=3, type=int)
-    parser.add_argument("--hidden_dim", default=16, type=int)
+    parser.add_argument("--hidden_dim", default=32, type=int)
     parser.add_argument("--kernel_size", default=5, type=int)
     parser.add_argument("--model", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
@@ -72,7 +72,7 @@ if __name__ == '__main__':
     parser.add_argument("--train_energy", default='all', type=str,
                         choices=['193', '2760', '5020', 'all'])
 
-    parser.add_argument("--batch_size", default=8, type=int)
+    parser.add_argument("--batch_size", default=4, type=int)
     parser.add_argument("--cached", default=False, type=bool)
 
     parser.add_argument("--epochs", default=10, type=int)

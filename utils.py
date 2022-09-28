@@ -34,24 +34,7 @@ def two_to_three(arr):
     return arr
 
 
-def three_to_two(array, x_values):
-    """
-    shape: (x, y, channels)
-    """
-    # Verifying shape
-    assert array.shape[1] == array.shape[0]
 
-
-    nx, ny, channels = array.shape
-    xv, yv = np.meshgrid(range(nx), range(ny))
-    coords = np.stack(( yv.flatten(), xv.flatten()), axis=1)
-
-    array = array.reshape(nx*ny, channels)
-    array = np.concatenate([coords, array], axis=1)
-
-    array[:, :2] = x_values[array[:, :2].astype(int)]
-
-    return array
 
 def make_file_prefix(args):
     file_prefix = 'tr_res_' + str(args.train_res)
@@ -62,7 +45,7 @@ def make_file_prefix(args):
     file_prefix += '_ksize_' + str(args.kernel_size)
     return file_prefix
 
-def load_model(args, dm, saved=False):
+def load_model(args, dm, saved):
     if args.model == 'MLP': 
         model = MLP(
             input_dim=dm.input_dim,
@@ -81,19 +64,20 @@ def load_model(args, dm, saved=False):
             )
 
     if not saved:
-        return Wrapper(
+        wrapped_model = Wrapper(
             model,
             dm.norms,
             criterion=args.criterion,
             lr=args.lr,
             amsgrad=args.amsgrad
             )
+        return wrapped_model
     else:
         model_file = make_file_prefix(args)+f'_val_err_{args.pc_err}.ckpt'
         model_path = os.path.join(
             args.results_dir, "saved_models", model_file
             )
-        return Wrapper.load_from_checkpoint(
+        wrapped_model = Wrapper.load_from_checkpoint(
             core_model=model,
             norms=dm.norms,
             criterion=args.criterion,
@@ -101,3 +85,4 @@ def load_model(args, dm, saved=False):
             amsgrad=args.amsgrad,
             checkpoint_path=model_path,
             )
+        return wrapped_model, model_file
