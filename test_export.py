@@ -64,11 +64,13 @@ def main(args):
         
         sample_file = os.path.join('data',args.test_res, args.test_energy,'0.dat')
         f = open(sample_file, 'r')
-        model.header = f.readline()
+        header = f.readline()
         f.close()
+        model.header = header
 
         data_sample = np.loadtxt(sample_file)
-        model.x_values = np.sort(np.unique(data_sample[:, 0]))
+        x_values = np.sort(np.unique(data_sample[:, 0]))
+        model.x_values = x_values
 
         trainer.predict(model, datamodule=dm_test)
 
@@ -96,7 +98,7 @@ if __name__ == '__main__':
     parser = ArgumentParser()
     # Managing params
     parser.add_argument("--predict", default=True, type=bool)
-    parser.add_argument("--visualize", default=False, type=bool)
+    parser.add_argument("--visualize", default=True, type=bool)
     parser.add_argument("--export", default=False, type=bool)
 
     parser.add_argument("--num_workers", default=8, type=int)

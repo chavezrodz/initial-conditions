@@ -1,9 +1,8 @@
 import os
-# import wandb
 from argparse import ArgumentParser
 from pytorch_lightning import Trainer
 from pytorch_lightning import utilities
-from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from Datamodule import DataModule
 from utils import make_file_prefix, load_model
@@ -15,16 +14,12 @@ def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
     dm = DataModule(args, stage='train')
     dm.prepare_data()
-    tb_logger = TensorBoardLogger(
+    logger = TensorBoardLogger(
         save_dir=os.path.join(args.results_dir, "tb_logs"),
         name=make_file_prefix(args),
         default_hp_metric=True
         )
-    loggers = [tb_logger]#, wb_logger]
-    for logger in loggers:
-        logger.log_hyperparams(
-                args
-                )
+    logger.log_hyperparams(args)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(args.results_dir, 'saved_models'),
@@ -37,7 +32,7 @@ def main(args):
         )
 
     trainer = Trainer(
-        logger=loggers,
+        logger=logger,
         accelerator='auto',
         devices='auto',
         max_epochs=args.epochs,
