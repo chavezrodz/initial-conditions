@@ -6,7 +6,7 @@ import os
 import matplotlib.pyplot as plt
 from Datamodule  import DataModule
 from pytorch_lightning import Trainer
-from utils import load_model
+from load_model import load_model
 
 
 def visualize_target_output(pred, y):
@@ -41,7 +41,17 @@ def main(args):
         devices='auto',
         )
 
-    dm_trained = DataModule(args, stage='train')
+    dm_trained = DataModule(
+        datapath=args.datapath,
+        cached=args.cached,
+        max_samples=args.max_samples,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        stage='train',
+        res=args.test_res,
+        energy=args.test_energy
+        )
+
     dm_trained.prepare_data()
     model, model_name = load_model(args, dm_trained, saved=True)
     del dm_trained
@@ -73,30 +83,30 @@ def main(args):
         trainer.predict(model, datamodule=dm_test)
 
     # Exporting
-    if args.export:
-        # for batch in test_dl:
-        #     x = batch[0]
-        #     input_example = x[:4]
-        #     break
+    # if args.export:
+    #     # for batch in test_dl:
+    #     #     x = batch[0]
+    #     #     input_example = x[:4]
+    #     #     break
 
-        compiled_path = os.path.join(
-            args.results_dir,
-            "compiled_models",
-            args.proj_dir,
-            )
-        os.makedirs(compiled_path, exist_ok=True)
+    #     compiled_path = os.path.join(
+    #         args.results_dir,
+    #         "compiled_models",
+    #         args.proj_dir,
+    #         )
+    #     os.makedirs(compiled_path, exist_ok=True)
 
-        model.to_torchscript(
-            file_path=compiled_path,
-            example_inputs=input_example
-            )
+    #     model.to_torchscript(
+    #         file_path=compiled_path,
+    #         example_inputs=input_example
+    #         )
 
 
 if __name__ == '__main__':
     parser = ArgumentParser()
     # Managing params
     parser.add_argument("--predict", default=True, type=bool)
-    parser.add_argument("--visualize", default=False, type=bool)
+    parser.add_argument("--visualize", default=True, type=bool)
     parser.add_argument("--export", default=False, type=bool)
 
     parser.add_argument("--num_workers", default=8, type=int)
@@ -104,10 +114,10 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
 
     # data params
-    parser.add_argument("--train_res", default='512x512', type=str)
-    parser.add_argument("--train_energy", default='all', type=str)
+    parser.add_argument("--train_res", default='128x128', type=str)
+    parser.add_argument("--train_energy", default='193', type=str)
 
-    parser.add_argument("--test_res", default='512x512', type=str)
+    parser.add_argument("--test_res", default='128x128', type=str)
     parser.add_argument("--test_energy", default='193', type=str)
 
     parser.add_argument("--max_samples", default=-1, type=int)

@@ -1,30 +1,35 @@
-import os
-# import wandb
 from argparse import ArgumentParser
 from pytorch_lightning import Trainer
 from pytorch_lightning import utilities
-from pytorch_lightning.loggers import TensorBoardLogger, WandbLogger
+from pytorch_lightning.loggers import TensorBoardLogger
 from pytorch_lightning.callbacks import ModelCheckpoint
 from Datamodule import DataModule
-from utils import make_file_prefix, load_model
+from utils import make_file_prefix
+from load_model import load_model
 from memory_profiler import profile
+import os
 
 
 # @profile
 def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
-    dm = DataModule(args, stage='train')
-    dm.prepare_data()
-    tb_logger = TensorBoardLogger(
+    dm = DataModule(
+        datapath=args.datapath,
+        max_samples=args.max_samples,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        stage='train',
+        res=args.train_res,
+        energy=args.train_energy,
+        cached=args.cached
+        )
+
+    logger = TensorBoardLogger(
         save_dir=os.path.join(args.results_dir, "tb_logs"),
         name=make_file_prefix(args),
         default_hp_metric=True
         )
-    loggers = [tb_logger]#, wb_logger]
-    for logger in loggers:
-        logger.log_hyperparams(
-                args
-                )
+    logger.log_hyperparams(args)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=os.path.join(args.results_dir, 'saved_models'),
@@ -37,7 +42,7 @@ def main(args):
         )
 
     trainer = Trainer(
-        logger=loggers,
+        logger=logger,
         accelerator='auto',
         devices='auto',
         max_epochs=args.epochs,
@@ -68,8 +73,8 @@ if __name__ == '__main__':
 
     # data params
     parser.add_argument("--max_samples", default=-1, type=int)
-    parser.add_argument("--train_res", default='512x512', type=str, choices=['128x128', '512x512'])
-    parser.add_argument("--train_energy", default='all', type=str,
+    parser.add_argument("--train_res", default='128x128', type=str, choices=['128x128', '512x512'])
+    parser.add_argument("--train_energy", default='193', type=str,
                         choices=['193', '2760', '5020', 'all'])
 
     parser.add_argument("--batch_size", default=4, type=int)
@@ -86,7 +91,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=1, type=int)
-    parser.add_argument("--fast_dev_run", default=False, type=bool)
+    parser.add_argument("--fast_dev_run", default=True, type=bool)
     args = parser.parse_args()
 
     main(args)
