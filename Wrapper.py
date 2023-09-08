@@ -85,26 +85,23 @@ class Wrapper(LightningModule):
         x = torch.cat(x, dim=-3)
         return self.core_model(x)
 
-    def inference_step(self, batch, batch_idx):
+    def inference_step(self, batch, batch_idx, double_data_by_sym):
         # scale everything, including targets for loss calc
-        data, fns = batch
+        data, _ = batch
         abc = self.scale(data)
         # combining inputs, doubling inputs for symetry ab, ba
         a, b, c = abc[:, :16], abc[:, 16:32], abc[:, 32:48]
-
-        # double data by symetry to enforce abellian func:
-        a, b = torch.cat([a, b], axis=0), torch.cat([b, a], axis=0)
-        c = torch.cat([c, c], axis=0)
-
-        # Commented out because no need to check doubled data on test
-        # file_nb = (*file_nb, *file_nb)
+        if double_data_by_sym:
+            # double data by symetry to enforce abellian func, True for training only:
+            a, b = torch.cat([a, b], axis=0), torch.cat([b, a], axis=0)
+            c = torch.cat([c, c], axis=0)
 
         x, target = (a, b), c
         pred = self.forward(x)
-        return pred, target, fns
+        return pred, target
 
     def training_step(self, batch, batch_idx):
-        pred, y, _ = self.inference_step(batch, batch_idx)
+        pred, y = self.inference_step(batch, batch_idx, double_data_by_sym=True)
         batch_size = y.shape[0]
 
         metrics_scaled = self.get_metrics(pred, y)
@@ -116,7 +113,7 @@ class Wrapper(LightningModule):
         return metrics_scaled[self.criterion]
 
     def validation_step(self, batch, batch_idx):
-        pred, y, _ = self.inference_step(batch, batch_idx)
+        pred, y = self.inference_step(batch, batch_idx, double_data_by_sym=False)
         batch_size = y.shape[0]
         metrics_scaled = self.get_metrics(pred, y)
         self.log_dict(
@@ -127,7 +124,7 @@ class Wrapper(LightningModule):
         return metrics_scaled[self.criterion]
 
     def test_step(self, batch, batch_idx):
-        pred, y, _ = self.inference_step(batch, batch_idx)
+        pred, y = self.inference_step(batch, batch_idx, double_data_by_sym=False)
         batch_size = y.shape[0]
 
         metrics_scaled = self.get_metrics(pred, y)
@@ -138,8 +135,12 @@ class Wrapper(LightningModule):
         return metrics_scaled[self.criterion]
 
     def predict_step(self, batch, batch_idx):
-        pred, target, fns = self.inference_step(batch, batch_idx)
+        abc, fns = batch
+        ab = abc[:, :32]
+        pred, _ = self.inference_step(batch, batch_idx, double_data_by_sym=False)
         for idx, file_nb in enumerate(fns):
             outfile = os.path.join(self.outfolder, 'pred_'+file_nb+'.dat')
-            arr = three_to_two(pred[idx].permute((1,2,0)).cpu(), self.x_values)
+            # Merge unscaled inputs to the prediction before reverting to the original format
+            arr = torch.cat([ab[idx], pred[idx]], axis=0)
+            arr = three_to_two(arr.permute((1,2,0)).cpu(), self.x_values)
             np.savetxt(outfile, arr, delimiter=',', header=self.header)
