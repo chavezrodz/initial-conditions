@@ -3,6 +3,7 @@ import numpy as np
 from torch.utils.data import Dataset
 from utils import two_to_three
 import torch
+import random
 
 def save_checkpt(filename, outfile):
     arr = np.loadtxt(filename)
@@ -38,8 +39,48 @@ def get_norms(dataloader):
     return norms
 
 
+def preprocess(datapath, res, energy):
+    # convert data types to tensors & saving them under processed
+    energy_src = os.path.join(datapath, 'raw', res, energy)
+    energy_chpt = os.path.join(datapath, 'processed', res, energy)
+    os.makedirs(energy_chpt, exist_ok=True)
+    files = os.listdir(energy_src)
+    random.shuffle(files)
+    for file in files:
+        outfile = os.path.join(energy_chpt, file[:-4]+'.npy')
+        if not os.path.exists(outfile):
+            infile = os.path.join(energy_src, file)
+            print(f'\t missing {energy} {outfile}')
+            save_checkpt(infile, outfile)
+    # If norms dont exist make them
+    if not os.path.exists(self.norms_file):
+        print("Norms dont exist, computing them")
+        os.makedirs(os.path.split(self.norms_file)[0], exist_ok=True)
+        dataset = IPGDataset(
+            os.path.join(self.datapath, 'processed'),
+            cached=self.cached,
+            energy=self.energy,
+            max_samples=self.max_samples,
+            res=self.res
+            )
+        total_len = len(dataset)
+        print(total_len)
+        test_size = int(self.test_split * total_len)
+        train_size = total_len - test_size
+        val_size = int(self.val_split*train_size)
+        train_size = train_size - val_size
+
+        train_ds, _, _ = random_split(
+            dataset, [train_size, val_size, test_size]
+            )
+        train_dl = DataLoader(train_ds, batch_size=self.batch_size, num_workers=self.num_workers)
+        np.save(self.norms_file, get_norms(train_dl))
+    self.norms = torch.tensor(np.load(self.norms_file))
+
+
+
 class IPGDataset(Dataset):
-    def __init__(self, processed_path, cached=True, energy='all', res='512x512', max_samples=-1):
+    def __init__(self, processed_path, cached, energy, res, max_samples=-1):
         self.data_path = processed_path
         self.cached = cached
         self.energy = energy

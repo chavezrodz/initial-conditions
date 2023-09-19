@@ -13,30 +13,31 @@ import os
 # @profile
 def main(args):
     utilities.seed.seed_everything(seed=args.seed, workers=True)
+    save_path = os.path.join(args.results_dir, 'saved_models', args.train_res, args.train_energy)
+    filename = make_file_prefix(args.model_type, args.n_layers, args.hidden_dim, args.kernel_size)
     dm = DataModule(
         datapath=args.datapath,
         max_samples=args.max_samples,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        stage='train',
         res=args.train_res,
         energy=args.train_energy,
         cached=args.cached
         )
 
     logger = TensorBoardLogger(
-        save_dir=os.path.join(args.results_dir, "tb_logs"),
-        name=make_file_prefix(args),
+        save_dir=os.path.join(save_path, "tb_logs"),
+        name=filename,
         default_hp_metric=True
         )
     logger.log_hyperparams(args)
 
     checkpoint_callback = ModelCheckpoint(
-        dirpath=os.path.join(args.results_dir, 'saved_models'),
+        dirpath=save_path,
         save_top_k=1,
         monitor='validation/'+args.criterion,
         mode="min",
-        filename=make_file_prefix(args)+'_val_err_{validation/sq_err:.2e}',
+        filename=filename+'_val_err={validation/sq_err:.2e}',
         auto_insert_metric_name=False,
         save_last=False
         )
@@ -53,7 +54,18 @@ def main(args):
         strategy="ddp_find_unused_parameters_false",
         )
 
-    model = load_model(args, dm, saved=False)
+    model = load_model(
+        model_type=args.model_type,
+        h_dim=args.hidden_dim, 
+        n_layers=args.n_layers,
+        k_size=args.kernel_size,
+        dm=dm,
+        saved=False,
+        results_dir=args.results_dir,
+        criterion=args.criterion,
+        lr=args.lr,
+        amsgrad=args.amsgrad
+        )
 
     trainer.fit(
         model,
@@ -68,7 +80,7 @@ if __name__ == '__main__':
     parser.add_argument("--n_layers", default=3, type=int)
     parser.add_argument("--hidden_dim", default=32, type=int)
     parser.add_argument("--kernel_size", default=5, type=int)
-    parser.add_argument("--model", default='UNET', type=str,
+    parser.add_argument("--model_type", default='UNET', type=str,
                         choices=['MLP', 'UNET'])
 
     # data params
@@ -78,7 +90,7 @@ if __name__ == '__main__':
                         choices=['193', '2760', '5020', 'all'])
 
     parser.add_argument("--batch_size", default=4, type=int)
-    parser.add_argument("--cached", default=False, type=bool)
+    parser.add_argument("--cached", default=True, type=bool)
 
     parser.add_argument("--epochs", default=10, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)

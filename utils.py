@@ -29,10 +29,8 @@ def two_to_three(arr):
     arr = np.reshape(arr[:,2:], (n,n, cols - 2))
     return arr
 
-def make_file_prefix(train_res, train_energy, model, n_layers, hidden_dim, kernel_size):
-    file_prefix = 'tr_res_' + str(train_res)
-    file_prefix += '_e_' + str(train_energy)
-    file_prefix += '_M_' + str(model)
+def make_file_prefix(model_type, n_layers, hidden_dim, kernel_size):
+    file_prefix = 'M_' + str(model_type)
     file_prefix += '_nl_' + str(n_layers)
     file_prefix += '_hdim_' + str(hidden_dim)
     file_prefix += '_ksize_' + str(kernel_size)

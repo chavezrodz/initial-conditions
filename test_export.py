@@ -8,81 +8,88 @@ from Datamodule  import DataModule
 from pytorch_lightning import Trainer
 from load_model import load_model
 
+def three_to_two(array, x_values):
+    """
+    shape: (x, y, channels)
+    """
+    # Verifying shape
+    assert array.shape[1] == array.shape[0]
 
-def visualize_target_output(pred, y):
-    pred, y = pred.mean(dim=0), y.mean(dim=0)
 
-    minmin = torch.min(torch.tensor(
-        [pred.min().item(), y.min().item()]
-        ))
+    nx, ny, channels = array.shape
+    xv, yv = np.meshgrid(range(nx), range(ny))
+    coords = np.stack(( yv.flatten(), xv.flatten()), axis=1)
 
-    maxmax = torch.max(torch.tensor(
-        [pred.max().item(), y.max().item()]
-        ))
+    array = array.reshape(nx*ny, channels)
+    array = np.concatenate([coords, array], axis=1)
 
-    fig, axs = plt.subplots(nrows=1, ncols=2, sharey=True, sharex=True)
-    im = axs[0].imshow(pred, vmin=minmin, vmax=maxmax, cmap='bone')
-    im = axs[1].imshow(y, vmin=minmin, vmax=maxmax, cmap='bone')
-
-    axs[0].set_title('Prediction')
-    axs[1].set_title('Target')
-    fig.tight_layout()
-
-    fig.subplots_adjust(right=0.85)
-    cbar_ax = fig.add_axes([0.88, 0.15, 0.04, 0.7])
-    fig.colorbar(im, cax=cbar_ax)
-    plt.show()
+    array[:, :2] = x_values[array[:, :2].astype(int)]
+    return array
 
 
 def main(args):
-    trainer = Trainer(
-        logger=False,
-        accelerator='auto',
-        devices='auto',
-        )
-
     dm_trained = DataModule(
         datapath=args.datapath,
         cached=args.cached,
         max_samples=args.max_samples,
         batch_size=args.batch_size,
         num_workers=args.num_workers,
-        stage='train',
-        res=args.test_res,
-        energy=args.test_energy
+        res=args.train_res,
+        energy=args.train_energy
         )
 
-    dm_trained.prepare_data()
-    model, model_name = load_model(args, dm_trained, saved=True)
+    model, model_name = load_model(
+        model_type=args.model_type,
+        h_dim=args.hidden_dim, 
+        n_layers=args.n_layers,
+        k_size=args.kernel_size,
+        dm=dm_trained,
+        saved=True,
+        results_dir=args.results_dir,
+        train_energy=args.train_energy,
+        train_res=args.train_res
+        )
     del dm_trained
 
-    dm_test = DataModule(args, stage='test')
-    trainer.test(model=model, datamodule=dm_test)
+    dm_test = DataModule(
+        datapath=args.datapath,
+        cached=args.cached,
+        max_samples=args.max_samples,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        res=args.train_res,
+        energy=args.train_energy)
 
-    if args.visualize:
-        for batch in predictions:
-            pred, target, fns = batch
-            for idx, file_nb in enumerate(fns):
-                visualize_target_output(pred[idx].detach(), target[idx].detach())
-
-        pass
+    dm_test.setup()
 
     if args.predict:
         outfolder = os.path.join('Results', 'Predictions', model_name, args.test_res, args.test_energy)
         os.makedirs(outfolder, exist_ok=True)
-        model.outfolder = outfolder
         
-        sample_file = os.path.join('data',args.test_res, args.test_energy,'0.dat')
+        sample_file = os.path.join('data','raw', args.test_res, args.test_energy,'0.dat')
         f = open(sample_file, 'r')
         header = f.readline()
         f.close()
-        model.header = header
 
         data_sample = np.loadtxt(sample_file)
         x_values = np.sort(np.unique(data_sample[:, 0]))
-        model.x_values = x_values
 
-        trainer.predict(model, datamodule=dm_test)
+        dl_pred = dm_test.predict_dataloader()
+        count = 0
+        for batch_idx, batch in enumerate(dl_pred):
+            abc, fns = batch
+            ab = abc[:, :32]
+            pred, y = model.inference_step(batch, batch_idx, double_data_by_sym=False)
+            count+=1
+            if count > 10:
+                break
+            if args.save:
+                for idx, file_nb in enumerate(fns):
+                    # Merge unscaled inputs to the prediction before reverting to the original format
+                    arr = torch.cat([ab[idx], pred[idx]], axis=0)
+                    arr = three_to_two(arr.permute((1,2,0)).cpu(), x_values)
+                    outfile = os.path.join(outfolder, 'pred_'+file_nb+'.dat')
+                    np.savetxt(outfile, arr, delimiter=',', header=header)
 
     # Exporting
     # if args.export:
@@ -107,8 +114,7 @@ def main(args):
 if __name__ == '__main__':
     parser = ArgumentParser()
     # Managing params
-    parser.add_argument("--predict", default=True, type=bool)
-    parser.add_argument("--visualize", default=True, type=bool)
+    parser.add_argument("--predict", default=False, type=bool)
     parser.add_argument("--export", default=False, type=bool)
 
     parser.add_argument("--num_workers", default=8, type=int)
@@ -124,7 +130,7 @@ if __name__ == '__main__':
 
     parser.add_argument("--max_samples", default=-1, type=int)
     parser.add_argument("--batch_size", default=4, type=int)
-    parser.add_argument("--cached", default=False, type=bool)
+    parser.add_argument("--cached", default=True, type=bool)
 
     # training params
     parser.add_argument("--criterion", default='sq_err', type=str,
@@ -133,10 +139,10 @@ if __name__ == '__main__':
     parser.add_argument("--amsgrad", default=True, type=bool)
 
     # Model Params
-    parser.add_argument("--model", default='MLP', type=str)
-    parser.add_argument("--n_layers", default=4, type=int)
-    parser.add_argument("--hidden_dim", default=32, type=int)
-    parser.add_argument("--kernel_size", default=3, type=int)
+    parser.add_argument("--model_type", default='UNET', type=str)
+    parser.add_argument("--n_layers", default=2, type=int)
+    parser.add_argument("--hidden_dim", default=16, type=int)
+    parser.add_argument("--kernel_size", default=5, type=int)
     parser.add_argument("--pc_err", default='1.80e-01', type=str)
 
     # Rate Integrating
