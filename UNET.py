@@ -11,7 +11,7 @@ class conv_block(nn.Module):
         self.conv2 = nn.Conv2d(out_c, out_c, kernel_size=kernel, padding=pad)
         self.bn2 = nn.BatchNorm2d(out_c)
         self.relu = nn.ReLU()
-        
+
     def forward(self, inputs):
         x = self.conv1(inputs)
         x = self.bn1(x)
@@ -28,7 +28,7 @@ class encoder_block(nn.Module):
         super().__init__()
         self.conv = conv_block(in_c, out_c, kernel)
         self.pool = nn.MaxPool2d((2, 2))
-        
+
     def forward(self, inputs):
         x = self.conv(inputs)
         p = self.pool(x)
@@ -75,7 +75,7 @@ class UNET(nn.Module):
         """ Fully Connected """
         pad = (kernel_size - 1)//2
         self.outputs = nn.Conv2d(hidden_dim, output_dim, kernel_size=kernel_size, padding=pad)
-        
+
     def forward(self, x):
         """ Encoder """
         ss = []

@@ -10,7 +10,7 @@ import random
 def get_norms(dataloader):
     n_batches = len(dataloader)
     batch = next(iter(dataloader))
-    batch_size, channels, xdim, ydim = batch[0].shape 
+    batch_size, channels, xdim, ydim = batch[0].shape
     channels_per_object = channels // 3
     norms_in = torch.zeros((2, channels_per_object))
     for channel_idx in range(channels_per_object):
@@ -96,7 +96,7 @@ class DataModule(pl.LightningDataModule):
 
         if stage in (None, "test"):
             self.test_ds = test_ds
-        
+
         if stage in (None, "predict"):
             self.dataset = dataset
 
@@ -111,4 +111,3 @@ class DataModule(pl.LightningDataModule):
 
     def predict_dataloader(self):
         return DataLoader(self.dataset, batch_size=self.batch_size, num_workers=self.num_workers)
-    

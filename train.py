@@ -56,7 +56,7 @@ def main(args):
 
     model = load_model(
         model_type=args.model_type,
-        h_dim=args.hidden_dim, 
+        h_dim=args.hidden_dim,
         n_layers=args.n_layers,
         k_size=args.kernel_size,
         dm=dm,
@@ -77,10 +77,10 @@ def main(args):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--n_layers", default=3, type=int)
+    parser.add_argument("--n_layers", default=4, type=int)
     parser.add_argument("--hidden_dim", default=32, type=int)
     parser.add_argument("--kernel_size", default=5, type=int)
-    parser.add_argument("--model_type", default='UNET', type=str,
+    parser.add_argument("--model_type", default='MLP', type=str,
                         choices=['MLP', 'UNET'])
 
     # data params
@@ -92,7 +92,7 @@ if __name__ == '__main__':
     parser.add_argument("--batch_size", default=4, type=int)
     parser.add_argument("--cached", default=True, type=bool)
 
-    parser.add_argument("--epochs", default=10, type=int)
+    parser.add_argument("--epochs", default=50, type=int)
     parser.add_argument("--lr", default=1e-3, type=float)
     parser.add_argument("--amsgrad", default=True, type=bool)
     parser.add_argument("--criterion", default='sq_err', type=str,
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     parser.add_argument("--datapath", default='data', type=str)
     parser.add_argument("--seed", default=0, type=int)
     parser.add_argument("--num_workers", default=1, type=int)
-    parser.add_argument("--fast_dev_run", default=True, type=bool)
+    parser.add_argument("--fast_dev_run", default=False, type=bool)
     args = parser.parse_args()
 
     main(args)

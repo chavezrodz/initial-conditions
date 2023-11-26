@@ -19,7 +19,7 @@ def two_to_three(arr):
     # Sanity check, these indices should be range(len_arr)
     arr[:, 0] = value_to_idx(arr[:, 0])
     arr[:, 1] = value_to_idx(arr[:, 1])
-    
+
     idx = np.ravel_multi_index(
         (arr[:, 0].astype(int), arr[:, 1].astype(int)), (n, n)
         )
@@ -35,4 +35,3 @@ def make_file_prefix(model_type, n_layers, hidden_dim, kernel_size):
     file_prefix += '_hdim_' + str(hidden_dim)
     file_prefix += '_ksize_' + str(kernel_size)
     return file_prefix
-

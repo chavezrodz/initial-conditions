@@ -6,12 +6,12 @@ from pytorch_lightning import LightningModule
 import os
 
 
-class Wrapper(LightningModule):  
+class Wrapper(LightningModule):
     def __init__(self,
                 core_model,
                 norms,
                 criterion,
-                lr, 
+                lr,
                 amsgrad,
                 ):
 

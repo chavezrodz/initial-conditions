@@ -6,7 +6,7 @@ class conv_layer(nn.Module):
         self.conv = nn.Conv2d(in_c, out_c, kernel_size=3, padding=1)
         self.bn = nn.BatchNorm2d(out_c)
         self.relu = nn.ReLU()
-        
+
     def forward(self, inputs):
         x = self.conv(inputs)
         x = self.bn(x)
@@ -39,11 +39,11 @@ class MLP(nn.Module):
         self.conv_layers.append(
             nn.Conv2d(hidden_dim, output_dim, kernel_size=kernel_size, padding=pad)
             )
-        
+
     def forward(self, x):
         """
         x = (projectile(A, B), target)
-        shapes are batch x gauge fields x x_dim x y_dims, 
+        shapes are batch x gauge fields x x_dim x y_dims,
         ex: (16, (16 or 32), 101, 101)
         """
         for layer in self.conv_layers:

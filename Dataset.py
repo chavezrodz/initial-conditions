@@ -16,7 +16,7 @@ def save_checkpt(filename, outfile):
 def get_norms(dataloader):
     n_batches = len(dataloader)
     batch = next(iter(dataloader))
-    batch_size, channels, xdim, ydim = batch[0].shape 
+    batch_size, channels, xdim, ydim = batch[0].shape
     channels_per_object = channels // 3
     norms_in = torch.zeros((2, channels_per_object))
     for channel_idx in range(channels_per_object):

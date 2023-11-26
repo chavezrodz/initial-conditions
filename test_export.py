@@ -40,7 +40,7 @@ def main(args):
 
     model, model_name = load_model(
         model_type=args.model_type,
-        h_dim=args.hidden_dim, 
+        h_dim=args.hidden_dim,
         n_layers=args.n_layers,
         k_size=args.kernel_size,
         dm=dm_trained,
@@ -65,7 +65,7 @@ def main(args):
     if args.predict:
         outfolder = os.path.join('Results', 'Predictions', model_name, args.test_res, args.test_energy)
         os.makedirs(outfolder, exist_ok=True)
-        
+
         sample_file = os.path.join('data','raw', args.test_res, args.test_energy,'0.dat')
         f = open(sample_file, 'r')
         header = f.readline()

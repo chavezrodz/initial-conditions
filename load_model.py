@@ -11,7 +11,7 @@ def load_model(
         model_type, h_dim, n_layers, k_size, dm, saved, results_dir,
         criterion=None, lr=None, amsgrad=None, pc_err=None,
         train_energy=None,train_res=None):
-    if model_type == 'MLP': 
+    if model_type == 'MLP':
         model = MLP(
             input_dim=dm.input_dim,
             output_dim=dm.output_dim,
